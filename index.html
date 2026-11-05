@@ -243,7 +243,16 @@
         <li><b>Risultato.</b> Per tutte e tre le variabili I è positivo e p ≤ 0,0001: altezza media 0,52, copertura 0,71, densità 0,58. Il tessuto edilizio di Palermo è fortemente raggruppato: gli hotspot dell'altezza sono nel centro e nella città consolidata (da Borgo Vecchio a Notarbartolo), i coldspot nelle UPL periferiche (Mondello, Sferracavallo, Ciaculli, Brancaccio).</li>
         <li>Il p locale <b>non è corretto per i test multipli</b> (55 test): qualche cluster al margine potrebbe essere un falso positivo. Le UPL sono unità di forma e dimensione diverse (MAUP), e l'altezza media nasconde la variabilità interna.</li>
       </ul>
-      <h2>9. Come è fatta</h2>
+      <h2>9. I lotti catastali</h2>
+      <ul class="guida">
+        <li><b>Fonte:</b> le <b>particelle catastali</b> di Palermo (Agenzia delle Entrate, comune G273), aggiornamento di <b>settembre 2026</b>: 135.038 particelle, solo foglio e numero. La superficie è calcolata dalla geometria (UTM 32N), non è quella catastale.</li>
+        <li><b>Rapporto di copertura:</b> superficie coperta dagli edifici divisa per la superficie del lotto. Un edificio conta in una particella se almeno il <b>10% della sua impronta</b> ci cade dentro; il suo <b>lotto principale</b> è quello con la sovrapposizione maggiore. Il rapporto è troncato a 100%.</li>
+        <li><b>Edifici a cavallo:</b> 41.740 edifici (37%) contano in più di una particella. Il catasto frammenta molto più della banca dati degli edifici, quindi la scheda lo segnala ma non cambia i conteggi.</li>
+        <li><b>Lotti senza edifici:</b> 80.150 particelle su 135.038. Non sono tutte «aree libere»: 4.105 sono particelle stradali (<i>STRADA…</i>) e molte altre sono campagna, aree verdi o pertinenze dove la banca dati degli edifici non ha poligoni. Sui lotti con edifici (54.888) la mediana è 407 m².</li>
+        <li><b>Approssimazioni:</b> gli edifici vengono dalla CTC 2006 e dalla banca dati globale, il catasto è di settembre 2026: le due fonti non coincidono al metro, un edificio nuovo o demolito falsa il rapporto del suo lotto. 212 edifici non cadono in nessuna particella.</li>
+        <li>Il livello si legge dal file <code>data/lotti.pmtiles</code> (tile vettoriali, ricalcolati da <code>scripts/09_lotti.py</code>); i contorni per la vista del lotto stanno in <code>data/lotti/</code>, un file per UPL, scaricati solo quando servono.</li>
+      </ul>
+      <h2>10. Come è fatta</h2>
       <p>Una pipeline in Python (geopandas, shapely) prepara i dati e scrive un file per zona. Il browser disegna tutto da zero con MapLibre per la base e Canvas 2D per gli edifici, senza librerie di grafici. Lo stesso algoritmo di disposizione è scritto sia in Python che in JavaScript, così le animazioni video coincidono con la mappa.</p>
       <h2>Cosa tenere presente</h2>
       <ul class="guida">
@@ -331,6 +340,7 @@
         <li><b>Lato lungo in orizzontale</b>: ruota gli edifici per allinearli.</li>
         <li><b>Isola zona selezionata</b>: mostra solo la zona scelta.</li>
         <li><b>Isolati</b>: disegna sulla mappa il contorno degli isolati; clic su uno per la sua scheda, doppio clic per vederlo in ordine. Dettagli nella sezione «Gli isolati» qui sotto.</li>
+        <li><b>Lotti</b>: colora le particelle catastali per rapporto di copertura; clic per la scheda, doppio clic per vedere il lotto con i suoi edifici. Dettagli nella sezione «I lotti catastali» qui sotto.</li>
         <li><b>Live Zoom</b>: dopo un filtro la vista si adatta agli edifici rimasti.</li>
       </ul>
       <h2>6. Gli isolati</h2>
@@ -383,10 +393,23 @@
         <li>Sotto il diagramma le UPL sono elencate per tipo di cluster, con il valore: un clic sul nome inquadra la UPL sulla mappa.</li>
         <li>Con il livello LISA acceso il passaggio del mouse mostra la scheda della UPL invece di quella dell'edificio; il link condiviso conserva la variabile scelta (<code>&amp;m=alt</code>, <code>cop</code> o <code>den</code>). Dettagli e limiti del metodo sono nella Metodologia, punto 8.</li>
       </ul>
-      <h2>10. Il menu delle viste</h2>
+      <h2>10. I lotti catastali</h2>
+      <figure><button type="button" class="gal" data-gal="img/guida/lotto-mappa.png" data-cap="Lotti accesi: particelle colorate per rapporto di copertura e scheda della particella scelta" title="Ingrandisci: Lotti accesi: particelle colorate per rapporto di copertura e scheda della particella scelta"><img src="img/guida/lotto-mappa.png" alt="La mappa con le particelle colorate per rapporto di copertura e la scheda di una particella" loading="lazy"></button><figcaption>Lotti accesi: particelle colorate per rapporto di copertura e scheda della particella scelta</figcaption></figure>
+      <ul class="guida">
+        <li>Accendi <b>Lotti</b> nella legenda (solo vista Mappa; si spegne se accendi Isolati o LISA). Le particelle compaiono da zoom 12 e gli edifici si attenuano per lasciarle leggere.</li>
+        <li>Il colore dice <b>quanta parte del lotto è costruita</b>: grigio = nessun edificio, poi dal verde chiaro al verde scuro fino a oltre il 60%.</li>
+        <li><b>Passa il mouse</b> su un lotto per evidenziarlo; <b>clicca</b> per la scheda: superficie, coperto, rapporto di copertura, numero di edifici e avvisi (lotto libero, edifici a cavallo, particella stradale).</li>
+      </ul>
+      <figure><button type="button" class="gal" data-gal="img/guida/lotto-ordinata.png" data-cap="Doppio clic su un lotto: il contorno della particella con i suoi edifici nelle posizioni reali" title="Ingrandisci: Doppio clic su un lotto: il contorno della particella con i suoi edifici nelle posizioni reali"><img src="img/guida/lotto-ordinata.png" alt="La vista Ordinata del singolo lotto, con il contorno della particella e i suoi edifici" loading="lazy"></button><figcaption>Doppio clic su un lotto: il contorno della particella con i suoi edifici nelle posizioni reali</figcaption></figure>
+      <ul class="guida">
+        <li><b>Doppio clic su un lotto</b> (o doppio tocco, o «Vedi il lotto con i suoi edifici» nella scheda): apre la vista Ordinata del solo lotto. Qui gli edifici <b>non sono in fila</b>: restano dove sono, dentro il contorno della particella, alla stessa scala.</li>
+        <li>Il pannello mostra le statistiche degli edifici del lotto; «<b>Torna alla mappa</b>», la X o il tasto <kbd>M</kbd> riportano sulla Mappa, centrata sul lotto.</li>
+        <li>Il <b>link condiviso</b> conserva il livello acceso (<code>&amp;q=1</code>) e il lotto aperto (<code>&amp;lot=…</code>). Fonte e approssimazioni sono nella Metodologia, punto 9.</li>
+      </ul>
+      <h2>11. Il menu delle viste</h2>
       <figure><button type="button" class="gal" data-gal="img/guida/dial.png" data-cap="Il menu rotondo arancione, in alto a sinistra" title="Ingrandisci: Il menu rotondo arancione, in alto a sinistra"><img src="img/guida/dial.png" alt="Il menu delle viste aperto" loading="lazy"></button><figcaption>Il menu rotondo arancione, in alto a sinistra</figcaption></figure>
       <p>Dall'alto: <b>Home</b> (inquadra Palermo), <b>zoom +</b>, <b>zoom −</b>, <b>vista Mappa</b>, <b>tema chiaro/scuro</b>, <b>schermo intero</b>.</p>
-      <h2>11. Scorciatoie da tastiera</h2>
+      <h2>12. Scorciatoie da tastiera</h2>
       <table class="tasti">
         <tr><td><kbd>/</kbd></td><td>Va alla barra di ricerca</td></tr>
         <tr><td><kbd>↑</kbd> <kbd>↓</kbd> <kbd>Invio</kbd></td><td>Nell'elenco dei suggerimenti: scorre e sceglie</td></tr>

@@ -286,6 +286,7 @@ body:not(.side-panel-open) #cerca-bar{left:50%}
 
 #m-head,#m-tabs{display:none}
 @media (max-width:640px){
+  #scheda-lotto,body.side-panel-open #scheda-lotto{left:10px;right:10px;width:auto;max-width:none;bottom:calc(var(--tab-h) + 10px)}
   :root{--head-h:0px;--tab-h:60px}
   #m-head{display:none !important;align-items:baseline;gap:8px;position:absolute;top:0;left:0;right:0;height:var(--head-h);z-index:8;padding:0 16px;align-items:center;
     background:var(--panel);border-bottom:1px solid var(--panel-border)}
