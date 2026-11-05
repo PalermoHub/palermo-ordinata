@@ -151,7 +151,7 @@ body.pw-drag #side-panel,body.pw-drag #cerca-bar{transition:none}
 .seg button:hover{color:var(--text)}
 .seg button.on{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent)}
 
-.stat-card{background:var(--overlay-1);border:1px solid var(--panel-border);border-radius:8px;padding:10px 12px;margin:0 0 10px}
+.stat-card{background:color-mix(in srgb,var(--text) 11%,var(--panel));border:1px solid var(--panel-border);border-radius:8px;padding:10px 12px;margin:0 0 10px}
 .stat-card-title{font-size:12px;font-weight:700;margin:0 0 2px}
 .stat-card-val{font-size:21px;font-weight:800;color:var(--accent);margin:0 0 2px;font-variant-numeric:tabular-nums}
 .stat-card-note{font-size:11.5px;color:var(--text-dim);line-height:1.4;margin:0}
@@ -197,6 +197,7 @@ body.pw-drag #side-panel,body.pw-drag #cerca-bar{transition:none}
 .rank-more{display:block;margin:8px 0 0;padding:0;background:none;border:none;color:var(--text-dim);font:inherit;font-size:11.5px;cursor:pointer}
 .rank-more:hover{color:var(--accent)}
 
+.rank-card .barre:last-child{margin-bottom:0}
 .barre{display:grid;grid-template-columns:minmax(80px,auto) 1fr auto;gap:5px 8px;align-items:center;font-size:12px;margin-bottom:6px}
 .barre .n{color:var(--text-dim)}
 .barre .b{height:10px;background:var(--overlay-2);border-radius:5px;overflow:hidden}

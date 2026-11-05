@@ -99,7 +99,7 @@
   }
 
   function barre(titolo, nomi, col, dati, unita, S, az, comune) {
-    const sec = document.createDocumentFragment();
+    const sec = el('section', 'rank-card');                       // stesso box delle classifiche
     sec.append(el('h2', '', titolo));
     const att = dati.map((v, i) => S.spente.has(i) ? 0 : v);      // scala e percentuali solo sulle classi attive
     const g = el('div', 'barre'), max = Math.max(...att, 1, comune || 0), tot = att.reduce((a, b) => a + b, 0) || 1;
