@@ -11,7 +11,7 @@ const NUM = new Intl.NumberFormat('it-IT', { useGrouping: 'always' });
 
 const S = {
   index: null, citta: null, layout: null, livello: 'circ', vista: 'map', colore: 'alt', raggruppa: false, lato: true,
-  sel: null, conf: null, isola: false, isolati: false, lotti: false, lottoSel: null, lottoHover: null, moran: null, isoHover: -1, isoSel: null, isoFocus: null, isoTipo: 'isolato', lottoAnelli: null, lottoBBox: null, lottoProps: null, isoSet: null, isoItems: [], isoTitolo: '', isoZona: '', spente: new Set(), liveZoom: true, zonaHover: null, views: { sorted: { k: 1, tx: 0, ty: 0 } }, fitOrd: true,
+  sel: null, conf: null, isola: false, isolati: false, lotti: false, edifici: true, lottoSel: null, lottoHover: null, moran: null, isoHover: -1, isoSel: null, isoFocus: null, isoTipo: 'isolato', lottoAnelli: null, lottoBBox: null, lottoProps: null, isoSet: null, isoItems: [], isoTitolo: '', isoZona: '', spente: new Set(), liveZoom: true, zonaHover: null, views: { sorted: { k: 1, tx: 0, ty: 0 } }, fitOrd: true,
   t: 0, lin: 0, anim: false, caricando: false, coda: [], dpr: 1, W: 0, H: 0, inset: 0, pw: 400, insetB: 0, gamma: 0, mediana: 0, tema: 'dark',
   colori: Render.COLORI, hover: -1,
 };
@@ -293,7 +293,7 @@ function leggiHash() {
   const x = (p.get('x') || '').split(',').filter(Boolean).map(Number).filter(n => Number.isInteger(n) && n >= 0 && n < 32);
   const tab = p.get('p');
   return { l: LIVELLI.includes(l) ? l : 'circ', v: v === 'sorted' ? 'sorted' : 'map', z: p.get('z'), c: cam,
-    k: ['uso', 'alt', 'sup', 'lot'].includes(k) ? k : 'alt', x, g: p.get('g') === '1', s: p.get('s') !== '0', i: p.get('i') === '1', o: p.get('o') === '1', q: p.get('q') === '1', lot: /^\d{1,7}$/.test(p.get('lot') || '') ? Number(p.get('lot')) : null, m: ['alt', 'cop', 'den'].includes(p.get('m')) ? p.get('m') : null, a: /^\w{1,30}$/.test(p.get('a') || '') ? p.get('a') : null,
+    k: ['uso', 'alt', 'sup', 'lot'].includes(k) ? k : 'alt', x, g: p.get('g') === '1', s: p.get('s') !== '0', i: p.get('i') === '1', o: p.get('o') === '1', q: p.get('q') === '1', e: p.get('e') !== '0', lot: /^\d{1,7}$/.test(p.get('lot') || '') ? Number(p.get('lot')) : null, m: ['alt', 'cop', 'den'].includes(p.get('m')) ? p.get('m') : null, a: /^\w{1,30}$/.test(p.get('a') || '') ? p.get('a') : null,
     t: p.get('t') === 'light' || p.get('t') === 'dark' ? p.get('t') : null,
     p: tab && document.querySelector(`.tab-hdr[data-tab="${CSS.escape(tab)}"]`) ? tab : 'zone' };
 }
@@ -305,7 +305,7 @@ function costruisciHash() {
   if (S.vista === 'map' && B) { const m = B.map, ce = m.getCenter(); c = `&c=${m.getZoom().toFixed(2)}/${ce.lat.toFixed(4)}/${ce.lng.toFixed(4)}`; }
   const tab = document.querySelector('.tab-hdr.active'), p = tab && tab.dataset.tab !== 'zone' ? `&p=${tab.dataset.tab}` : '';
   const x = S.spente.size ? `&x=${[...S.spente].sort((a, b) => a - b).join(',')}` : '';
-  return `l=${S.livello}&v=${S.vista}${z}${c}&k=${S.colore}${x}${S.raggruppa ? '&g=1' : ''}${S.lato ? '' : '&s=0'}${S.isola ? '&i=1' : ''}${S.isolati ? '&o=1' : ''}${S.lotti ? '&q=1' : ''}${S.moran ? `&m=${S.moran}` : ''}${S.isoFocus !== null ? (S.isoTipo === 'lotto' ? `&lot=${S.isoFocus}` : `&a=${encodeURIComponent(Isolati.lista[S.isoFocus].idag)}`) : ''}&t=${S.tema}${p}`;
+  return `l=${S.livello}&v=${S.vista}${z}${c}&k=${S.colore}${x}${S.raggruppa ? '&g=1' : ''}${S.lato ? '' : '&s=0'}${S.isola ? '&i=1' : ''}${S.isolati ? '&o=1' : ''}${S.lotti ? '&q=1' : ''}${S.lotti && !S.edifici ? '&e=0' : ''}${S.moran ? `&m=${S.moran}` : ''}${S.isoFocus !== null ? (S.isoTipo === 'lotto' ? `&lot=${S.isoFocus}` : `&a=${encodeURIComponent(Isolati.lista[S.isoFocus].idag)}`) : ''}&t=${S.tema}${p}`;
 }
 function scriviHash() {
   if (!S.citta) return;
@@ -320,7 +320,7 @@ function mostraTip(x, y, cx, cy) {
   if ((zh >= 0 ? zh : null) !== S.zonaHover) { S.zonaHover = zh >= 0 ? zh : null; if (S.vista === 'map') R.disegna(); }
   const ih = R.isolatoIn(x, y);
   if (ih !== S.isoHover) { S.isoHover = ih; if (S.vista === 'map') R.disegna(); }
-  const i = R.hit(x, y);
+  const i = S.lotti && !S.edifici ? -1 : R.hit(x, y);              // edifici spenti sui lotti: niente scheda dell'edificio
   if (i === S.hover) { if (i >= 0) postaTip(cx, cy); return; }
   S.hover = i;
   const o = R.octx; o.setTransform(1, 0, 0, 1, 0, 0); o.clearRect(0, 0, ov.width, ov.height);
@@ -470,7 +470,8 @@ async function sceltaColore(c) {
 async function impostaLotti(on) {
   const sw = $('lotti'), leg = $('lotti-leg');
   if (!on) {
-    S.lotti = false; chiudiSchedaLotto(); LM.accendi(false); sw.checked = false; leg.hidden = true; document.body.classList.remove('lotti-on');
+    S.lotti = false; chiudiSchedaLotto(); LM.accendi(false); sw.checked = false; leg.hidden = true; $('lotti-edifici-lab').hidden = true; document.body.classList.remove('lotti-on');
+    if (R && S.citta) R.disegna();
     if (S.colore === 'lot') cambiaColore('alt'); else scriviHash();                  // senza il livello non ha senso colorare gli edifici per lotto
     return;
   }
@@ -479,7 +480,7 @@ async function impostaLotti(on) {
     if (S.isolati) await impostaIsolati(false);
     if (!Lotti.pronto()) { mostra('Caricamento lotti…'); await Lotti.carica(); nascondi(); }
     await Lotti.applica(S.citta, S.livello);                           // ora i dati ci sono: classe del lotto per ogni edificio
-    LM.accendi(true); leg.hidden = false; document.body.classList.add('lotti-on');
+    LM.accendi(true); leg.hidden = false; $('lotti-edifici-lab').hidden = false; $('lotti-edifici').checked = S.edifici; document.body.classList.add('lotti-on');
     S.lotti = true; sw.checked = true; sincronizzaLotti(); ricalcola(); scriviHash();
   } catch (err) {
     console.error(err); nascondi(); S.lotti = false; LM.accendi(false); sw.checked = false; leg.hidden = true; document.body.classList.remove('lotti-on');
@@ -791,6 +792,7 @@ function collegaInterfaccia() {
   $('live-zoom').addEventListener('change', e => { S.liveZoom = e.target.checked; try { localStorage.setItem('live-zoom', S.liveZoom ? '1' : '0'); } catch (_) {} });
   $('isolati').addEventListener('change', e => { if (e.target.checked && S.moran) impostaMoran(false); if (e.target.checked && S.lotti) impostaLotti(false); impostaIsolati(e.target.checked); });
   $('lotti').addEventListener('change', e => impostaLotti(e.target.checked));
+  $('lotti-edifici').addEventListener('change', e => { S.edifici = e.target.checked; nascondiTip(); R.disegna(); scriviHash(); });
   $('scheda-lotto-chiudi').addEventListener('click', chiudiSchedaLotto);
   $('scheda-lotto-apri').addEventListener('click', () => { if (S.lottoSel !== null) apriLotto(S.lottoSel); });
   $('moran').addEventListener('change', e => impostaMoran(e.target.checked));
@@ -874,6 +876,7 @@ function ridimensiona() {
     R.disegna = (...args) => { const r = disegnaOrig.apply(R, args); posizionaX(); return r; };
     collegaMappa(); collegaInterfaccia(); Cerca.init(S, azioni);
     $('map').addEventListener('base-offline', () => avvisa('Mappa di base non raggiungibile: restano visibili gli edifici.'));
+    S.edifici = h.e;
     S.colore = h.k; S.spente = new Set(h.x); S.raggruppa = h.g; S.lato = h.s; S.isola = h.i;
     $('raggruppa').checked = h.g; $('lato').checked = h.s; $('isola').checked = h.i;
     document.querySelector(`.tab-hdr[data-tab="${h.p}"]`).click();

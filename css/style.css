@@ -394,8 +394,7 @@ kbd{display:inline-block;min-width:18px;padding:1px 5px;border:1px solid var(--p
 #moran-leg{margin:2px 0 8px}
 #lotti-leg{margin:2px 0 8px;font-size:12px;color:var(--text-dim)}
 #lotti-leg[hidden]{display:none}
-/* con i lotti accesi gli edifici si attenuano in Mappa, cosi' il colore dei lotti resta leggibile */
-body.lotti-on:not(.vista-ordinata) #cv{opacity:.38}
+#lotti-edifici-lab[hidden]{display:none}
 .lotti-leg-titolo{font-weight:600;margin-bottom:3px;color:var(--text)}
 .lotti-leg-riga{display:flex;align-items:center;gap:6px;line-height:1.5;width:100%;padding:1px 2px;border:none;background:none;color:inherit;font:inherit;text-align:left}
 button.lotti-leg-riga{cursor:pointer;border-radius:4px}

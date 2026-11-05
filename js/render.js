@@ -117,10 +117,11 @@
       if (e > 0.001) disegnaBlocchi(vs, e);
       if (e > 0.001 && S.isoFocus !== null && S.isoTipo === 'lotto' && S.lottoAnelli) disegnaLotto(vs, e);
 
+      const soloLotti = S.lotti && S.edifici === false && e < 0.001;                      // interruttore «Edifici sui lotti» spento (solo Mappa)
       const sel = inFuoco() ? 1 : null, ncl = PER.length, cols = COLORI[S.colore];
       const grandi = [];
       for (let cl = 0; cl < ncl; cl++) {
-        const pa = new Path2D(), pb = new Path2D(), ids = PER[cl];
+        const pa = new Path2D(), pb = new Path2D(), ids = soloLotti ? [] : PER[cl];
         for (let j = 0; j < ids.length; j++) {
           const i = ids[j];
           let x = (MX[i] - v.cx) * wd + W / 2, y = (MY[i] - v.cy) * wd + H / 2;
@@ -148,7 +149,7 @@
       }
       ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1;
       if (S.isolati && root.Isolati && root.Isolati.pronto() && e < 0.999) disegnaIsolati(v, 1 - e);
-      if (S.evid != null && S.citta.items[S.evid] && VIS[S.evid]) {                        // poligono evidenziato: bordo spesso, scuro sotto e chiaro sopra
+      if (!soloLotti && S.evid != null && S.citta.items[S.evid] && VIS[S.evid]) {                        // poligono evidenziato: bordo spesso, scuro sotto e chiaro sopra
         const i = S.evid; matrice(i, e, M);
         const kk = Math.hypot(M[0], M[1]) || 1, P = Citta.path(it[i]);
         ctx.setTransform(M[0] * dpr, M[1] * dpr, M[2] * dpr, M[3] * dpr, M[4] * dpr, M[5] * dpr);

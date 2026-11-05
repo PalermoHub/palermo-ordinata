@@ -37,8 +37,8 @@
       const primoSimbolo = (map.getStyle().layers.find(l => l.type === 'symbol') || {}).id;
       const l = (def) => map.addLayer({ source: SORGENTE, 'source-layer': 'particelle', minzoom: MIN_ZOOM, ...def }, primoSimbolo);
       const filtro = filtroClassi();
-      l({ id: FILL, ...(filtro ? { filter: filtro } : {}), type: 'fill', paint: { 'fill-color': coloreClasse(), 'fill-opacity': ['case', ['==', ['get', 'nt'], 0], 0.2, 0.5] } });
-      l({ id: LINEA, ...(filtro ? { filter: filtro } : {}), type: 'line', paint: { 'line-color': 'rgba(226,232,240,.45)', 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.15, 17, 0.9] } });
+      l({ id: FILL, ...(filtro ? { filter: filtro } : {}), type: 'fill', paint: { 'fill-color': coloreClasse(), 'fill-opacity': ['case', ['==', ['get', 'nt'], 0], 0.14, 0.34] } });
+      l({ id: LINEA, ...(filtro ? { filter: filtro } : {}), type: 'line', paint: { 'line-color': 'rgba(226,232,240,.6)', 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.15, 17, 0.9] } });
       l({ id: HOVER, type: 'line', filter: hover >= 0 ? ['==', ['get', 'k'], hover] : nessuno, layout: { 'line-join': 'round' }, paint: { 'line-color': '#fff', 'line-width': 2.5 } });
       l({ id: SEL, type: 'line', filter: sel >= 0 ? ['==', ['get', 'k'], sel] : nessuno, layout: { 'line-join': 'round' }, paint: { 'line-color': '#f5a623', 'line-width': 3.5 } });
     }
