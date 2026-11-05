@@ -91,6 +91,10 @@ body.side-panel-open #logo-osd{right:calc(var(--pw) + 12px)}
 .dial-item:hover{background:#f2f2f2}
 .dial-item.active{background:var(--accent-fill);color:var(--on-accent)}
 .dial-item.solo-mobile{display:none}
+#share-menu{position:fixed;z-index:20;min-width:150px;padding:6px;border-radius:10px;background:var(--panel);border:1px solid var(--panel-border);box-shadow:0 6px 20px var(--shadow);display:flex;flex-direction:column}
+#share-menu[hidden]{display:none}
+#share-menu a,#share-menu button{display:block;padding:8px 12px;border:0;border-radius:6px;background:none;color:var(--text,inherit);font:inherit;font-size:13px;text-align:left;text-decoration:none;cursor:pointer}
+#share-menu a:hover,#share-menu button:hover,#share-menu a:focus-visible,#share-menu button:focus-visible{background:var(--accent-fill);color:var(--on-accent);outline:none}
 .dial-sep{width:18px;height:1px;background:var(--text-dim);opacity:.45;flex-shrink:0;margin:1px 0}
 #theme-toggle .icon-sun{display:none}
 :root[data-theme="light"] #theme-toggle .icon-moon{display:none}

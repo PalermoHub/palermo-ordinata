@@ -486,9 +486,45 @@ function posizionaX() {
   const l = Math.min(v.tx + (b.x + b.w) * v.k + 20, Wd - 56), t = Math.min(Math.max(v.ty + b.y * v.k, 12), S.H - S.insetB - 56) + (mobile() ? document.getElementById('cv').offsetTop : 0);
   x.style.right = 'auto'; x.style.left = Math.max(l, 12) + 'px'; x.style.top = t + 'px';
 }
+/* Condivisione: la pagina gira in iframe su palermohub.opendatasicilia.it, quindi si condivide l'URL della pagina ospite
+   (location.href sarebbe quello dell'iframe). Menu di link + copia: niente SDK, niente tracker, funziona anche con iframe senza allow="web-share". */
+const URL_CONDIVISIONE = 'https://palermohub.opendatasicilia.it/palermo-ordinata.html';
+const TESTO_CONDIVISIONE = 'Palermo, ordinata: gli edifici zona per zona, dal più grande al più piccolo';
+function linkSocial(r) {
+  const u = encodeURIComponent(URL_CONDIVISIONE), t = encodeURIComponent(TESTO_CONDIVISIONE);
+  return { whatsapp: `https://wa.me/?text=${t}%20${u}`, telegram: `https://t.me/share/url?url=${u}&text=${t}`,
+    facebook: `https://www.facebook.com/sharer/sharer.php?u=${u}`, x: `https://twitter.com/intent/tweet?url=${u}&text=${t}`,
+    linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${u}`, mail: `mailto:?subject=${t}&body=${u}` }[r];
+}
+function chiudiCondividi() { const m = $('share-menu'); if (m.hidden) return; m.hidden = true; $('share-btn').setAttribute('aria-expanded', 'false'); }
+function menuCondividi() {
+  const m = $('share-menu'), b = $('share-btn');
+  if (!m.hidden) { chiudiCondividi(); return; }
+  const r = b.getBoundingClientRect();
+  m.hidden = false; b.setAttribute('aria-expanded', 'true');
+  m.style.left = Math.min(r.right + 8, innerWidth - m.offsetWidth - 8) + 'px';
+  m.style.top = Math.max(8, Math.min(r.top, innerHeight - m.offsetHeight - 8)) + 'px';
+}
+function collegaCondividi() {
+  const m = $('share-menu');
+  m.querySelectorAll('a[data-s]').forEach(a => { a.href = linkSocial(a.dataset.s); a.addEventListener('click', chiudiCondividi); });
+  m.querySelector('[data-s="copia"]').addEventListener('click', async e => {
+    const el = e.currentTarget; let ok = false;
+    try { await navigator.clipboard.writeText(URL_CONDIVISIONE); ok = true; } catch (_) {
+      const t = document.createElement('textarea'); t.value = URL_CONDIVISIONE; t.style.position = 'fixed'; t.style.opacity = '0';
+      document.body.appendChild(t); t.select(); try { ok = document.execCommand('copy'); } catch (_) {} t.remove();
+    }
+    el.textContent = ok ? 'Link copiato ✓' : URL_CONDIVISIONE;
+    setTimeout(() => { el.textContent = 'Copia link'; chiudiCondividi(); }, ok ? 1200 : 4000);
+  });
+  document.addEventListener('pointerdown', e => { if (!m.hidden && !m.contains(e.target) && !$('share-btn').contains(e.target)) chiudiCondividi(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') chiudiCondividi(); });
+  window.addEventListener('resize', chiudiCondividi);
+}
 function collegaInterfaccia() {
   $('torna-mappa').addEventListener('click', () => vaiA('map'));
   document.addEventListener('keydown', e => { if ((e.key === 'm' || e.key === 'M') && !e.target.matches('input,textarea') && !e.ctrlKey && !e.metaKey && S.vista === 'sorted') vaiA('map'); });
+  collegaCondividi();
   $('dial-fab').addEventListener('click', () => {
     const aperto = $('dial-items').classList.toggle('open'); $('dial-fab').setAttribute('aria-expanded', String(aperto));
   });
@@ -503,6 +539,7 @@ function collegaInterfaccia() {
       case 'tema': applicaTema(S.tema === 'dark' ? 'light' : 'dark', true); break;
       case 'schermo': if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => {}); break;
       case 'pannello': impostaPannello(!pannelloAperto()); break;
+      case 'condividi': menuCondividi(); break;
     }
   }));
   document.querySelectorAll('#seg-livello button').forEach(b => b.addEventListener('click', () => cambiaLivello(b.dataset.l)));
