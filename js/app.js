@@ -48,6 +48,7 @@ async function caricaLivello(liv) {
     const c = await Citta.carica(liv, S.index);
     preparaZone(c);
     S.citta = c; S.livello = liv;
+    Indirizzi.carica(liv, S.index);                                   // indirizzi per il tooltip: in background, il tooltip li mostra appena pronti
     const a = Float64Array.from(c.items, b => b.area).sort(); S.mediana = a.length ? Math.round(a[a.length >> 1]) : 0;
     ricalcola(); minimappa(); nascondi(); aggiornaUI(); scriviHash();
   } catch (err) {
@@ -312,7 +313,10 @@ function mostraTip(x, y, cx, cy) {
   const l2 = document.createElement('div'); l2.textContent = `Altezza: ${b.cls[1] === C.alt.length - 1 ? 'non disponibile' : b.h.toFixed(1).replace('.', ',') + ' m'}`;
   const l3 = document.createElement('div'); l3.textContent = `Superficie: ${NUM.format(b.area)} m²`;
   const l4 = document.createElement('div'); l4.className = 'z'; l4.textContent = S.citta.zone[b.z].name;
-  tip.append(t1, l2, l3, l4); tip.hidden = false; postaTip(cx, cy);
+  tip.append(t1, l2, l3, l4);
+  const ind = Indirizzi.testo(i);
+  if (ind) { const l5 = document.createElement('div'); l5.className = 'ind'; l5.textContent = ind; tip.append(l5); }
+  tip.hidden = false; postaTip(cx, cy);
 }
 function postaTip(cx, cy) {
   const w = tip.offsetWidth, h = tip.offsetHeight;

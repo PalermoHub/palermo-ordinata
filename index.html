@@ -260,6 +260,7 @@
         <li>La <b>X</b> accanto al blocco (o il tasto <kbd>M</kbd>) riporta alla Mappa.</li>
       </ul>
       <figure><button type="button" class="gal" data-gal="img/guida/ordinata-tip.png" data-cap="Passando sopra un edificio compare la scheda con i dati" title="Ingrandisci: Passando sopra un edificio compare la scheda con i dati"><img src="img/guida/ordinata-tip.png" alt="Scheda con i dati di un edificio" loading="lazy"></button><figcaption>Passando sopra un edificio compare la scheda con i dati</figcaption></figure>
+      <p>Sotto i dati compare anche l'<b>indirizzo</b> (via e civico) dell'edificio, in Mappa e in Ordinata. Se i civici sono più d'uno vengono raggruppati per via, con «(+N)» per quelli in più. Gli indirizzi sono probabili (civico agganciato all'edificio più vicino) e circa metà degli edifici non ne ha nessuno: in quel caso la riga manca.</p>
       <h2>4. Cercare una zona o un indirizzo</h2>
       <figure><button type="button" class="gal" data-gal="img/guida/cerca-lista.png" data-cap="La barra di ricerca in basso suggerisce le zone mentre scrivi" title="Ingrandisci: La barra di ricerca in basso suggerisce le zone mentre scrivi"><img src="img/guida/cerca-lista.png" alt="Barra di ricerca con elenco dei suggerimenti" loading="lazy"></button><figcaption>La barra di ricerca in basso suggerisce le zone mentre scrivi</figcaption></figure>
       <ul class="guida">
@@ -318,7 +319,7 @@
       <h2>Fonti</h2>
       <p>Edifici: «Edifici 3D (edifici unificati)» di <a href="https://palermodigitaltwin.opendatasicilia.it/fonti.html" target="_blank" rel="noopener" title="Apri le fonti di DigitalTwin Palermo">DigitalTwin Palermo</a>, sintesi di tre fonti globali (Overture Maps Foundation, Global Building Atlas, OpenBuildingMap) unite con una pipeline di geoprocessing (2026) e del rilievo volumetrico del Comune di Palermo (2006). Licenza dichiarata dalla fonte: da verificare prima di un uso diverso dalla consultazione.</p>
       <p>Confini: circoscrizioni, quartieri e UPL del Comune di Palermo.</p>
-      <p>Indirizzi (solo per la ricerca): civici ANNCSU, Archivio nazionale dei numeri civici e delle strade urbane (Agenzia delle Entrate e ISTAT), aggiornamento febbraio 2026. Ogni civico è agganciato all'edificio più vicino (entro 25 m), quindi il risultato è l'edificio più probabile, non sempre quello esatto.</p>
+      <p>Indirizzi (per la ricerca e per la scheda degli edifici): civici ANNCSU, Archivio nazionale dei numeri civici e delle strade urbane (Agenzia delle Entrate e ISTAT), aggiornamento febbraio 2026. Ogni civico è agganciato all'edificio più vicino (entro 25 m), quindi il risultato è l'edificio più probabile, non sempre quello esatto.</p>
       <p>Idea e metodo: l'idea viene da <a href="https://lnkd.in/p/dDZ9AtBM" target="_blank" rel="noopener" title="Apri il post di Adam Roberts su LinkedIn">un post di Adam Roberts</a> per il #30DayMapChallenge 2026 (giorno 3, Poligoni), «Paris, sorted». Il codice di quel progetto è <a href="https://github.com/abenrob/30daymap2026/tree/main/day-03-polygons" target="_blank" rel="noopener" title="Apri il codice di Adam Roberts su GitHub">pubblico su GitHub</a>. Abbiamo ripreso l'idea e il principio di disposizione; i dati, la pipeline e il codice di questa mappa sono stati rifatti per Palermo.</p>
       <p>Mappa di base: © OpenStreetMap contributors, OpenFreeMap, OpenMapTiles. Satellite: Esri World Imagery.</p>
       <h2>Sviluppo</h2>
@@ -350,6 +351,7 @@
 <script src="js/base.js"></script>
 <script src="js/render.js"></script>
 <script src="js/pannello.js"></script>
+<script src="js/indirizzi.js"></script>
 <script src="js/cerca.js"></script>
 <script src="js/guida.js"></script>
 <script src="js/app.js"></script>

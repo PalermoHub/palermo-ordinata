@@ -45,6 +45,7 @@ body.side-panel-open #logo-osd{right:calc(var(--pw) + 12px)}
   border-radius:6px;padding:6px 10px;font-size:12px;box-shadow:0 4px 14px var(--shadow);white-space:nowrap}
 #tip strong{display:block;margin-bottom:2px}
 #tip .z{color:var(--text-dim)}
+#tip .ind{margin-top:3px;max-width:260px;white-space:normal}
 
 #avviso{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:8;max-width:min(420px,calc(100vw - 120px));background:var(--panel);color:var(--text);border:1px solid var(--panel-border);border-radius:8px;padding:8px 12px;font-size:12px;box-shadow:0 4px 14px var(--shadow)}
 #avviso[hidden]{display:none}
