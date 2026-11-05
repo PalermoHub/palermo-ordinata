@@ -1,0 +1,20 @@
+data/work/
+frames/
+.playwright-mcp/
+__pycache__/
+*.mp4
+
+# Non pubblicati su PalermoHub/palermo-ordinata
+docs/
+scripts/
+tests/
+dati/
+graphify-out/
+.impeccable/
+img/anim/*
+!img/anim/circ-i.gif
+DESIGN.md
+PRODUCT.md
+index - Copia.html
+img/guida/cerca-barra.png
+img/guida/mappa.png
