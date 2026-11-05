@@ -1,0 +1,276 @@
+/* Renderer degli edifici sul canvas sopra la base MapLibre.
+   e = progresso Mappa(0) -> Ordinata(1). Ogni edificio ha due posizioni: proiettata dalla camera di MapLibre (Mercator)
+   e slot nel blocco della sua zona (vista Ordinata); la posizione, la scala e la rotazione sono interpolate.
+   Gli anelli (Path2D) sono relativi al centroide dell'edificio. LOD: sotto 10 px si disegna un rettangolo
+   (un solo fill per colore), altrimenti il poligono vero. */
+(function (root) {
+  const COLORI = {
+    uso: ['#f2b134', '#4fb3d9', '#e58fb0', '#b07cf0', '#ef6f6c', '#5fd38d', '#7e9cf5', '#9bc53d', '#5a6070'],
+    alt: ['#35476b', '#3f78a8', '#3fa7a0', '#8fcf6a', '#f2d04b', '#f27a45', '#5a6070'],
+    sup: ['#3f78a8', '#3fa7a0', '#f2d04b', '#f27a45'],
+  };
+  const KEY = { uso: 0, alt: 1, sup: 2 };
+  const NUM = new Intl.NumberFormat('it-IT', { useGrouping: 'always' });
+  const LAT = 38.1394, SOGLIA_PX = 10, CELLA_M = 150;
+
+  function crea(S, B, cv, ov) {
+    const ctx = cv.getContext('2d'), octx = ov.getContext('2d');
+    const M = new Float64Array(6);
+    let n = 0, MX, MY, SX, SY, OW, OH, SW, SH, SCX, SCY, ANG1, ZI, PER = [], grigliaMap = null, grigliaOrd = null, grandiMap = [], grandiOrd = [], VIS = new Uint8Array(0);
+    const stile = nome => getComputedStyle(document.documentElement).getPropertyValue(nome).trim();
+
+    /* ricostruisce gli array tipizzati da S.citta e S.layout (dopo caricamento, layout, lato, colore) */
+    function carica() {
+      const it = S.citta.items; n = it.length;
+      MX = new Float64Array(n); MY = new Float64Array(n); SX = new Float64Array(n); SY = new Float64Array(n);
+      OW = new Float32Array(n); OH = new Float32Array(n); SW = new Float32Array(n); SH = new Float32Array(n);
+      SCX = new Float32Array(n); SCY = new Float32Array(n); ANG1 = new Float32Array(n); ZI = new Int16Array(n);
+      for (let i = 0; i < n; i++) {
+        const b = it[i];
+        MX[i] = b.mx; MY[i] = b.my; ZI[i] = b.z;
+        SX[i] = S.layout.pos[2 * i]; SY[i] = S.layout.pos[2 * i + 1];
+        OW[i] = b.ow; OH[i] = b.oh;
+        if (S.lato) { SW[i] = b.lw; SH[i] = b.lh; SCX[i] = b.lcx; SCY[i] = b.lcy; ANG1[i] = b.ang; }
+        else { SW[i] = b.ow; SH[i] = b.oh; SCX[i] = b.ocx; SCY[i] = b.ocy; ANG1[i] = 0; }
+      }
+      ricolora();
+      costruisciGriglie();
+    }
+    function ricolora() {
+      const k = KEY[S.colore], ncl = COLORI[S.colore].length, tmp = Array.from({ length: ncl }, () => []);
+      const it = S.citta.items, spente = S.spente, iso = S.isola && S.sel !== null;
+      VIS = new Uint8Array(n);                                                           // 0 = classe spenta dalla legenda: non si disegna e non risponde al cursore
+      for (let i = 0; i < n; i++) { if (iso && ZI[i] !== S.sel) continue; const c = it[i].cls[k]; if (spente.has(c)) continue; VIS[i] = 1; tmp[c].push(i); }
+      PER = tmp.map(a => Int32Array.from(a));
+    }
+
+    /* riquadro degli edifici visibili (della zona selezionata, se c'e'): Mercator in vista Mappa, dm del layout in Ordinata; null se non resta nulla */
+    function riquadro(vista) {
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (let i = 0; i < n; i++) {
+        if (!VIS[i] || (S.sel !== null && ZI[i] !== S.sel)) continue;
+        const hw = vista === 'map' ? 0 : SW[i] / 2, hh = vista === 'map' ? 0 : SH[i] / 2;
+        const x = vista === 'map' ? MX[i] : SX[i], y = vista === 'map' ? MY[i] : SY[i];
+        if (x - hw < x0) x0 = x - hw; if (x + hw > x1) x1 = x + hw;
+        if (y - hh < y0) y0 = y - hh; if (y + hh > y1) y1 = y + hh;
+      }
+      return x0 <= x1 ? { x0, y0, x1, y1 } : null;
+    }
+
+    function costruisciGriglie() {
+      const it = S.citta.items, cm = CELLA_M / Geo.metriPerUnitaMerc(LAT);
+      grigliaMap = new Map(); grandiMap = []; grigliaOrd = new Map(); grandiOrd = [];
+      const cellaOrd = CELLA_M * 4;                                                     // dm
+      for (let i = 0; i < n; i++) {
+        const b = it[i];
+        if (Math.max(b.ow, b.oh) > CELLA_M * 10 * 0.8) grandiMap.push(i);
+        else { const kk = Math.floor(MX[i] / cm) * 1000003 + Math.floor(MY[i] / cm); (grigliaMap.get(kk) || grigliaMap.set(kk, []).get(kk)).push(i); }
+        if (Math.max(SW[i], SH[i]) > cellaOrd * 0.8) grandiOrd.push(i);
+        else { const kk = Math.floor(SX[i] / cellaOrd) * 1000003 + Math.floor(SY[i] / cellaOrd); (grigliaOrd.get(kk) || grigliaOrd.set(kk, []).get(kk)).push(i); }
+      }
+      grigliaMap.cella = cm; grigliaOrd.cella = cellaOrd;
+    }
+
+    const kMappa = v => v.world / (Geo.metriPerUnitaMerc(LAT) * 10);                     // px per dm in vista Mappa
+
+    /* adatta la vista Ordinata allo spazio disponibile (esclude il pannello se aperto) */
+    function adattaOrdinata() {
+      const w = S.layout.w, h = S.layout.h, m = 24, Wd = Math.max(S.W - S.inset, 100), Hd = Math.max(S.H - S.insetB, 100);
+      const k = Math.min((Wd - 2 * m) / w, (Hd - 2 * m) / h);
+      return { k, tx: (Wd - w * k) / 2, ty: (Hd - h * k) / 2 };
+    }
+
+    /* matrice del singolo edificio al progresso e (stessa forma dell'originale: posizione, scala, rotazione) */
+    function matrice(i, e, out) {
+      const v = B.vista(), vs = S.views.sorted, k0 = kMappa(v), k1 = vs.k, b = S.citta.items[i];
+      const P0x = (MX[i] - v.cx) * v.world + v.W / 2, P0y = (MY[i] - v.cy) * v.world + v.H / 2;
+      const Q1x = vs.tx + SX[i] * k1, Q1y = vs.ty + SY[i] * k1;
+      const a1 = ANG1[i], a = S.gamma + (a1 - S.gamma) * e, k = k0 + (k1 - k0) * e;
+      const T1x = Q1x - k1 * SCX[i], T1y = Q1y - k1 * SCY[i];
+      out[0] = Math.cos(a) * k; out[1] = Math.sin(a) * k; out[2] = -out[1]; out[3] = out[0];
+      out[4] = P0x + (T1x - P0x) * e; out[5] = P0y + (T1y - P0y) * e;
+      return out;
+    }
+
+    function disegna() {
+      if (!S.citta) return;
+      const v = B.vista(), dpr = S.dpr, e = S.t, vs = S.views.sorted;
+      if (cv.width !== Math.round(v.W * dpr) || cv.height !== Math.round(v.H * dpr)) {
+        cv.width = ov.width = Math.round(v.W * dpr); cv.height = ov.height = Math.round(v.H * dpr);
+      }
+      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
+      const cont = B.map.getContainer();                                                  // la base sfuma insieme agli edifici
+      cont.style.opacity = String(1 - 0.97 * e);
+      cont.style.visibility = e >= 0.999 ? 'hidden' : 'visible';
+      cont.classList.toggle('nascosta', e >= 0.999);                                      // anche i controlli (attribuzione) sono nascosti
+
+      const W = v.W, H = v.H, wd = v.world, k0 = kMappa(v), k1 = vs.k, k = k0 + (k1 - k0) * e;
+      scala(k);
+      if (e < 0.999) disegnaConfini(v, 1 - e);
+      if (e > 0.001) disegnaBlocchi(vs, e);
+
+      const sel = S.sel, ncl = PER.length, cols = COLORI[S.colore];
+      const grandi = [];
+      for (let cl = 0; cl < ncl; cl++) {
+        const pa = new Path2D(), pb = new Path2D(), ids = PER[cl];
+        for (let j = 0; j < ids.length; j++) {
+          const i = ids[j];
+          let x = (MX[i] - v.cx) * wd + W / 2, y = (MY[i] - v.cy) * wd + H / 2;
+          if (e > 0) { x += (vs.tx + SX[i] * k1 - x) * e; y += (vs.ty + SY[i] * k1 - y) * e; }
+          const w = OW[i] + (SW[i] - OW[i]) * e, h = OH[i] + (SH[i] - OH[i]) * e;
+          if (w * k < SOGLIA_PX && h * k < SOGLIA_PX) {
+            if (x < -60 || y < -60 || x > W + 60 || y > H + 60) continue;                // i piccoli: scarto sul centroide
+            const pw = Math.max(w * k, 1.5), ph = Math.max(h * k, 1.5);
+            (sel !== null && ZI[i] !== sel ? pa : pb).rect((x - pw / 2) * dpr, (y - ph / 2) * dpr, pw * dpr, ph * dpr);
+          } else grandi.push(i);
+        }
+        ctx.fillStyle = cols[cl];
+        if (sel !== null) { ctx.globalAlpha = 0.35; ctx.fill(pa); ctx.globalAlpha = 1; }
+        ctx.fill(pb);
+      }
+      const it = S.citta.items;
+      for (const i of grandi) {
+        matrice(i, e, M);
+        const r = Math.hypot(Math.max(OW[i], SW[i]), Math.max(OH[i], SH[i])) * k + 20;   // i grandi: scarto solo se l'intero edificio e' fuori
+        if (M[4] < -r || M[5] < -r || M[4] > W + r || M[5] > H + r) continue;
+        ctx.globalAlpha = sel !== null && ZI[i] !== sel ? 0.35 : 1;
+        ctx.fillStyle = cols[it[i].cls[KEY[S.colore]]];
+        ctx.setTransform(M[0] * dpr, M[1] * dpr, M[2] * dpr, M[3] * dpr, M[4] * dpr, M[5] * dpr);
+        ctx.fill(Citta.path(it[i]), 'evenodd');
+      }
+      if (S.evid != null && S.citta.items[S.evid] && VIS[S.evid]) {                        // poligono evidenziato: bordo spesso, scuro sotto e chiaro sopra
+        const i = S.evid; matrice(i, e, M);
+        const kk = Math.hypot(M[0], M[1]) || 1, P = Citta.path(it[i]);
+        ctx.setTransform(M[0] * dpr, M[1] * dpr, M[2] * dpr, M[3] * dpr, M[4] * dpr, M[5] * dpr);
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = 'rgba(0,0,0,.75)'; ctx.lineWidth = 7 / kk; ctx.stroke(P);
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 3.5 / kk; ctx.stroke(P);
+      }
+      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1;
+      if (e > 0.6 && S.raggruppa) disegnaEtichetteGruppo(vs, (e - 0.6) / 0.4);
+    }
+
+    function proietta(m) { const v = B.vista(); return [(m[0] - v.cx) * v.world + v.W / 2, (m[1] - v.cy) * v.world + v.H / 2]; }
+
+    function disegnaConfini(v, alfa) {
+      const dpr = S.dpr, wd = v.world;
+      ctx.save(); ctx.globalAlpha = alfa; ctx.lineJoin = 'round';
+      const iso = S.isola && S.sel !== null;
+      S.citta.zone.forEach((z, zi) => {
+        if (iso && zi !== S.sel) return;
+        const sel = S.sel === zi, hov = S.zonaHover === zi;
+        ctx.beginPath();
+        for (const r of z.selM) for (let i = 0; i < r.length; i += 2) {
+          const X = ((r[i] - v.cx) * wd + v.W / 2) * dpr, Y = ((r[i + 1] - v.cy) * wd + v.H / 2) * dpr;
+          i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y);
+        }
+        ctx.closePath();
+        if (sel || hov) { ctx.fillStyle = sel ? 'rgba(245,166,35,.10)' : 'rgba(255,255,255,.05)'; ctx.fill('evenodd'); }
+        ctx.strokeStyle = sel ? stile('--accent') : stile('--zone-line'); ctx.lineWidth = (sel ? 2.4 : 1.2) * dpr;
+        ctx.setLineDash(sel ? [] : [5 * dpr, 4 * dpr]); ctx.stroke();
+      });
+      ctx.setLineDash([]);
+      // nomi delle zone al centro del riquadro, solo se la zona e' abbastanza grande sullo schermo
+      ctx.fillStyle = stile('--text'); ctx.font = `600 ${12 * dpr}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.lineWidth = 3 * dpr; ctx.strokeStyle = stile('--bg');
+      S.citta.zone.forEach((z, zi) => {
+        if (iso && zi !== S.sel) return;
+        const [x, y] = proietta(z.centroM), pw = z.larghM * wd;
+        if (pw < 110 || x < -50 || y < -50 || x > v.W + 50 || y > v.H + 50) return;
+        ctx.strokeText(z.name, x * dpr, y * dpr); ctx.fillText(z.name, x * dpr, y * dpr);
+      });
+      ctx.restore();
+    }
+
+    function disegnaBlocchi(vs, alfa) {
+      const dpr = S.dpr, k = vs.k;
+      ctx.save(); ctx.globalAlpha = alfa;
+      ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.font = `600 ${12 * dpr}px system-ui, sans-serif`;
+      S.layout.blocchi.forEach((b, zi) => {
+        if (S.isola && S.sel !== null && zi !== S.sel) return;
+        const x = (vs.tx + b.x * k) * dpr, y = (vs.ty + b.y * k) * dpr, w = b.w * k * dpr, h = b.h * k * dpr, sel = S.sel === zi;
+        ctx.strokeStyle = sel ? stile('--accent') : stile('--zone-line'); ctx.lineWidth = (sel ? 2.4 : 1) * dpr;
+        ctx.strokeRect(x, y, w, h);
+        const z = S.citta.zone[zi], testo = `${z.name} · ${NUM.format(z.n)}`;
+        if (w > 40 * dpr && ctx.measureText(testo).width <= w * 1.6) {                    // etichetta solo se non invade i vicini
+          ctx.fillStyle = sel ? stile('--accent') : stile('--text-dim');
+          ctx.fillText(testo, x, y - 4 * dpr);
+        }
+      });
+      ctx.restore();
+    }
+
+    function disegnaEtichetteGruppo(vs, alfa) {
+      const dpr = S.dpr, k = vs.k, nomi = S.index.classi[S.colore];
+      if (Layout.LABEL_H * k < 11) return;                                                 // etichetta piu' alta dello spazio: si vede solo da vicino
+      ctx.save(); ctx.globalAlpha = alfa; ctx.fillStyle = stile('--text-dim'); ctx.textBaseline = 'top';
+      ctx.font = `${11 * dpr}px system-ui, sans-serif`;
+      for (const b of S.layout.blocchi) {
+        if (b.w * k < 60) continue;
+        for (const l of b.etichette) ctx.fillText(nomi[l.cls].nome, (vs.tx + l.x * k) * dpr, (vs.ty + l.y * k) * dpr);
+      }
+      ctx.restore();
+    }
+
+    function scala(k) {
+      const pxm = k * 10, bar = document.getElementById('scalaBar'), txt = document.getElementById('scalaTxt');
+      if (!bar) return;
+      const m = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000].find(x => x * pxm >= 60) || 10000;
+      bar.style.width = (m * pxm) + 'px'; txt.textContent = m >= 1000 ? `${m / 1000} km` : `${m} m`;
+    }
+
+    /* edificio sotto il cursore (x, y in px CSS); solo a riposo (e = 0 o 1) */
+    function hit(x, y) {
+      if (!S.citta || S.anim) return -1;
+      const e = S.t, dpr = S.dpr, v = B.vista(), vs = S.views.sorted, it = S.citta.items;
+      let cand = [];
+      if (e < 0.5) {
+        const mx = (x - v.W / 2) / v.world + v.cx, my = (y - v.H / 2) / v.world + v.cy, c = grigliaMap.cella;
+        const gx = Math.floor(mx / c), gy = Math.floor(my / c);
+        for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { const l = grigliaMap.get((gx + a) * 1000003 + gy + b); if (l) cand.push(...l); }
+        cand.push(...grandiMap);
+      } else {
+        const sx = (x - vs.tx) / vs.k, sy = (y - vs.ty) / vs.k, c = grigliaOrd.cella;
+        const gx = Math.floor(sx / c), gy = Math.floor(sy / c);
+        for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { const l = grigliaOrd.get((gx + a) * 1000003 + gy + b); if (l) cand.push(...l); }
+        cand.push(...grandiOrd);
+      }
+      let best = -1, bd = 6;
+      for (const i of cand) {
+        if (!VIS[i]) continue;
+        matrice(i, e, M);
+        const b = it[i], cxs = M[0] * b.ocx + M[2] * b.ocy + M[4], cys = M[1] * b.ocx + M[3] * b.ocy + M[5];
+        const raggio = 0.5 * Math.hypot(b.ow, b.oh) * Math.hypot(M[0], M[1]), d = Math.hypot(x - cxs, y - cys);
+        if (d > raggio + 6) continue;
+        ctx.setTransform(M[0] * dpr, M[1] * dpr, M[2] * dpr, M[3] * dpr, M[4] * dpr, M[5] * dpr);
+        if (ctx.isPointInPath(Citta.path(b), x * dpr, y * dpr, 'evenodd')) { ctx.setTransform(1, 0, 0, 1, 0, 0); return i; }
+        if (d < bd) { bd = d; best = i; }
+      }
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      return best;
+    }
+
+    /* zona sotto il cursore: poligono (vista Mappa) o blocco (vista Ordinata) */
+    function zonaIn(x, y) {
+      if (!S.citta) return -1;
+      const v = B.vista(), vs = S.views.sorted;
+      if (S.t < 0.5) {
+        const mx = (x - v.W / 2) / v.world + v.cx, my = (y - v.H / 2) / v.world + v.cy;
+        for (let zi = 0; zi < S.citta.zone.length; zi++) if (dentro(S.citta.zone[zi].selM, mx, my)) return zi;
+        return -1;
+      }
+      const sx = (x - vs.tx) / vs.k, sy = (y - vs.ty) / vs.k;
+      return S.layout.blocchi.findIndex(b => sx >= b.x && sx <= b.x + b.w && sy >= b.y && sy <= b.y + b.h);
+    }
+    function dentro(anelli, px, py) {                                                      // pari-dispari su tutti gli anelli
+      let c = false;
+      for (const r of anelli) for (let i = 0, j = r.length - 2; i < r.length; j = i, i += 2) {
+        if (((r[i + 1] > py) !== (r[j + 1] > py)) && (px < (r[j] - r[i]) * (py - r[i + 1]) / (r[j + 1] - r[i + 1]) + r[i])) c = !c;
+      }
+      return c;
+    }
+
+    return { carica, ricolora, riquadro, disegna, matrice, hit, zonaIn, adattaOrdinata, kMappa, octx, COLORI, KEY, LAT };
+  }
+  root.Render = { crea, COLORI, KEY };
+})(typeof window !== 'undefined' ? window : globalThis);
