@@ -79,6 +79,8 @@
     <label class="chk sw">Lato lungo in orizzontale<input type="checkbox" id="lato" role="switch" autocomplete="off" checked></label>
     <label class="chk sw" title="Mostra solo gli edifici e il confine della zona selezionata">Isola zona selezionata<input type="checkbox" id="isola" role="switch" autocomplete="off"></label>
     <label class="chk sw" title="Mostra sulla mappa il contorno degli isolati (aggregati strutturali del DPC); clic su un isolato per le sue statistiche">Isolati<input type="checkbox" id="isolati" role="switch" autocomplete="off"></label>
+    <label class="chk sw" title="Mostra sulla mappa i cluster di autocorrelazione spaziale (LISA) delle UPL, al posto degli edifici: hotspot, coldspot e outlier">Autocorrelazione (LISA)<input type="checkbox" id="moran" role="switch" autocomplete="off"></label>
+    <div id="moran-leg" hidden></div>
     <label class="chk sw" title="Quando nascondi o mostri una classe dalla legenda, la vista si adatta agli edifici rimasti">Live Zoom<input type="checkbox" id="live-zoom" role="switch" autocomplete="off" checked></label>
     <p class="nota nota-dbl"><b>Doppio clic</b> (o doppio tocco) su una zona della mappa: apre la vista sul pannello ordinato.</p>
   </div>
@@ -159,6 +161,7 @@
   </div>
   <div id="tab-hdrs" role="tablist">
     <button class="tab-hdr active" type="button" role="tab" data-tab="zone" aria-selected="true" title="Statistiche e classifiche delle zone">Zone</button>
+    <button class="tab-hdr" type="button" role="tab" data-tab="moran" aria-selected="false" title="Autocorrelazione spaziale: Moran's I e LISA sulle UPL">Moran</button>
     <button class="tab-hdr" type="button" role="tab" data-tab="metodo" aria-selected="false" title="Come è stata costruita la mappa">Metodologia</button>
     <button class="tab-hdr" type="button" role="tab" data-tab="utilita" aria-selected="false" title="Strumenti e utilità">Utilità</button>
     <button class="tab-hdr" type="button" role="tab" data-tab="guida" aria-selected="false" title="Guida all'uso">Guida</button>
@@ -175,6 +178,17 @@
       <div id="confronto"></div>
       <div id="quote-body"></div>
       <div id="classifiche"></div>
+    </section>
+    <section id="tab-moran" class="tab-content" role="tabpanel">
+      <h2>Autocorrelazione spaziale</h2>
+      <p class="nota">Le UPL con altezze o densità alte stanno vicine tra loro più di quanto farebbe il caso? Il <b>Moran's I</b> lo dice per tutta la città, con un test statistico; il <b>LISA</b> (Local Indicators of Spatial Association) lo dice UPL per UPL e individua <b>hotspot</b> (alta tra alte), <b>coldspot</b> (bassa tra basse) e <b>outlier</b> (alta tra basse o bassa tra alte).</p>
+      <div class="seg" id="seg-moran" role="group" aria-label="Variabile analizzata">
+        <button type="button" data-m="alt" title="Altezza media degli edifici di ogni UPL">Altezza media</button>
+        <button type="button" data-m="cop" title="Quota di suolo occupata dalle impronte degli edifici">Copertura</button>
+        <button type="button" data-m="den" title="Numero di edifici per km²">Densità</button>
+      </div>
+      <button id="moran-btn" class="btn-acc" type="button" title="Mostra o nascondi i cluster sulla mappa (al posto degli edifici)">Mostra sulla mappa</button>
+      <div id="moran-body"></div>
     </section>
     <section id="tab-metodo" class="tab-content" role="tabpanel">
       <h2>Da dove nasce</h2>
@@ -209,7 +223,17 @@
         <li>Si mostrano solo gli aggregati con almeno un edificio: 39.545 su 46.852.</li>
         <li>Le due fonti (edifici e aggregati) non coincidono al metro: i confini di un isolato possono tagliare di poco un edificio.</li>
       </ul>
-      <h2>8. Come è fatta</h2>
+      <h2>8. L'autocorrelazione spaziale</h2>
+      <p><b>Cosa significa.</b> La prima legge della geografia dice che «tutto è legato a tutto, ma le cose vicine sono più legate di quelle lontane». L'autocorrelazione spaziale misura quanto è vera, per un dato valore: se le UPL con edifici alti confinano con altre UPL con edifici alti (e le basse con le basse), il valore è <b>autocorrelato</b>; se si distribuisce a caso sulla città, no. <b>A cosa serve.</b> Una mappa a colori mostra dei raggruppamenti, ma l'occhio li vede anche nel caso: il test dice se sono più netti di quanto farebbe il caso, e il LISA indica <i>dove</i> sono. Così si separano le zone che formano un blocco omogeneo (hotspot e coldspot) da quelle che fanno eccezione rispetto ai vicini (outlier).</p>
+      <ul class="guida">
+        <li>Si calcola sulle <b>55 UPL</b>, con tre variabili: altezza media (edifici con altezza nota), copertura (impronta a terra divisa per l'area della UPL) e densità (edifici per km²).</li>
+        <li>Due UPL sono <b>vicine</b> se si toccano (contiguità «queen»); i pesi sono standardizzati per riga, quindi il «valore dei vicini» è la media dei confinanti.</li>
+        <li><b>Moran's I</b> misura se UPL vicine hanno valori simili: vicino a 0 è casuale, positivo vuol dire cluster, negativo vuol dire alternanza. La significatività viene da <b>9.999 permutazioni</b> casuali dei valori sulle UPL, non da un'approssimazione normale.</li>
+        <li><b>LISA</b> (Anselin, 1995) scompone I in un contributo per UPL. Con 9.999 permutazioni condizionate ogni UPL riceve un p locale: sotto 0,05 è classificata <b>HH</b>, <b>LL</b>, <b>LH</b> o <b>HL</b> secondo che sia sopra o sotto la media e lo sia anche la media dei vicini. Il resto è «non significativo».</li>
+        <li><b>Risultato.</b> Per tutte e tre le variabili I è positivo e p ≤ 0,0001: altezza media 0,52, copertura 0,71, densità 0,58. Il tessuto edilizio di Palermo è fortemente raggruppato: gli hotspot dell'altezza sono nel centro e nella città consolidata (da Borgo Vecchio a Notarbartolo), i coldspot nelle UPL periferiche (Mondello, Sferracavallo, Ciaculli, Brancaccio).</li>
+        <li>Il p locale <b>non è corretto per i test multipli</b> (55 test): qualche cluster al margine potrebbe essere un falso positivo. Le UPL sono unità di forma e dimensione diverse (MAUP), e l'altezza media nasconde la variabilità interna.</li>
+      </ul>
+      <h2>9. Come è fatta</h2>
       <p>Una pipeline in Python (geopandas, shapely) prepara i dati e scrive un file per zona. Il browser disegna tutto da zero con MapLibre per la base e Canvas 2D per gli edifici, senza librerie di grafici. Lo stesso algoritmo di disposizione è scritto sia in Python che in JavaScript, così le animazioni video coincidono con la mappa.</p>
       <h2>Cosa tenere presente</h2>
       <ul class="guida">
@@ -232,6 +256,7 @@
         <li><b>Confronti tra zone.</b> Tutti i blocchi hanno la stessa scala: un edificio da 100 m² è grande uguale ovunque. Un blocco più esteso contiene più edifici o edifici più grandi.</li>
         <li><b>Altezza, superficie o uso.</b> Lo stesso blocco si può colorare in tre modi, per vedere quanti edifici sono bassi o alti, piccoli o grandi, residenziali o commerciali.</li>
         <li><b>Numeri per zona.</b> Per ogni zona il pannello dà il numero di edifici, la superficie occupata a terra e la mediana, cioè il valore a metà della classifica. Le classifiche si ricalcolano sulle sole classi scelte con i filtri.</li>
+        <li><b>Dove si raggruppano altezza, copertura e densità.</b> Il tab Moran dice se le UPL con valori simili stanno vicine più del caso (Moran's I) e quali sono hotspot, coldspot e outlier (LISA).</li>
         <li><b>Tre livelli di dettaglio.</b> 8 circoscrizioni, 25 quartieri e 55 UPL, per un totale di 111.478 edifici.</li>
       </ul>
       <h2>Per che cosa può servire</h2>
@@ -245,6 +270,7 @@
       <h2>Che cosa non è</h2>
       <ul class="guida">
         <li><b>Non è un censimento.</b> La banca dati può spezzare un isolato in più edifici: i conteggi non sono unità catastali.</li>
+        <li><b>L'autocorrelazione è descrittiva.</b> Dice che i valori si raggruppano, non perché; vale solo per le 55 UPL e dipende da come sono tracciate (MAUP).</li>
         <li><b>Non dice quante persone abitano una zona</b> né quanto valgono gli immobili: misura solo forma e dimensione degli edifici.</li>
         <li><b>L'uso è noto solo in parte.</b> L'85% degli edifici non ha un uso registrato, per questo il colore di partenza è l'altezza.</li>
         <li><b>I dati sono una sintesi di fonti diverse.</b> Il DigitalTwin di Palermo unisce il rilievo comunale del 2006 (99.067 edifici) con tre fonti globali, Overture Maps, Global Building Atlas e OpenBuildingMap, che coprono i 11.256 edifici dove il rilievo manca. 1.796 edifici non hanno un'altezza.</li>
@@ -328,10 +354,29 @@
         <li>Se hai già una zona selezionata, parte da quella. Cambiando livello (Circoscrizioni, Quartieri, UPL) il confronto si azzera.</li>
         <li>«<b>Azzera confronto</b>» lo chiude e torna alla mappa intera.</li>
       </ul>
-      <h2>9. Il menu delle viste</h2>
+      <h2>9. Autocorrelazione: Moran e LISA</h2>
+      <p>Serve a capire se i valori <b>si raggruppano</b>: le UPL con edifici alti stanno vicine tra loro più di quanto farebbe il caso? Il tab <b>Moran</b> risponde con un numero per tutta la città (il <b>Moran's I</b>) e con un colore per ogni UPL (il <b>LISA</b>).</p>
+      <figure><button type="button" class="gal" data-gal="img/guida/moran-mappa.png" data-cap="Cluster LISA sulla mappa: in rosso gli hotspot, in blu i coldspot" title="Ingrandisci: Cluster LISA sulla mappa: in rosso gli hotspot, in blu i coldspot"><img src="img/guida/moran-mappa.png" alt="La mappa di Palermo con le UPL colorate in base al cluster LISA" loading="lazy"></button><figcaption>Cluster LISA sulla mappa: in rosso gli hotspot, in blu i coldspot</figcaption></figure>
+      <ul class="guida">
+        <li>Apri il tab <b>Moran</b>, scegli la variabile (<b>Altezza media</b>, <b>Copertura</b> o <b>Densità</b>) e premi «<b>Mostra sulla mappa</b>». Lo stesso si fa con l'interruttore «Autocorrelazione (LISA)» nella legenda. Gli edifici vengono sostituiti dai cluster; per tornare indietro premi «Nascondi dalla mappa».</li>
+        <li><b>Rosso, hotspot (alto-alto):</b> UPL con valore alto circondata da UPL con valori alti. <b>Blu, coldspot (basso-basso):</b> il contrario.</li>
+        <li><b>Arancio e azzurro, outlier:</b> UPL alta tra basse (arancio) o bassa tra alte (azzurro). Sono le eccezioni rispetto al contesto.</li>
+        <li><b>Grigio:</b> nessun raggruppamento significativo (p locale sopra 0,05).</li>
+      </ul>
+      <figure><button type="button" class="gal" data-gal="img/guida/moran-pannello.png" data-cap="Il pannello Moran: I globale, significatività e diagramma di Moran" title="Ingrandisci: Il pannello Moran: I globale, significatività e diagramma di Moran"><img src="img/guida/moran-pannello.png" alt="Il pannello con il Moran's I, il test e il diagramma" loading="lazy"></button><figcaption>Il pannello Moran: I globale, significatività e diagramma di Moran</figcaption></figure>
+      <ul class="guida">
+        <li><b>Moran's I</b> sta di solito tra −1 e +1: vicino a 0 i valori sono sparsi a caso, positivo vuol dire che le zone simili stanno vicine, negativo che si alternano. Accanto compaiono il valore atteso se fosse casuale, lo z e il <b>p</b>: sotto 0,05 il raggruppamento non è frutto del caso.</li>
+        <li>Nel <b>diagramma di Moran</b> ogni punto è una UPL: in orizzontale il suo valore, in verticale la media dei vicini. Più i punti seguono la retta in salita, più c'è raggruppamento. Un clic su un punto porta alla UPL.</li>
+      </ul>
+      <figure><button type="button" class="gal" data-gal="img/guida/moran-cluster.png" data-cap="Elenco dei cluster: un clic su una UPL la inquadra sulla mappa" title="Ingrandisci: Elenco dei cluster: un clic su una UPL la inquadra sulla mappa"><img src="img/guida/moran-cluster.png" alt="L'elenco delle UPL per tipo di cluster" loading="lazy"></button><figcaption>Elenco dei cluster: un clic su una UPL la inquadra sulla mappa</figcaption></figure>
+      <ul class="guida">
+        <li>Sotto il diagramma le UPL sono elencate per tipo di cluster, con il valore: un clic sul nome inquadra la UPL sulla mappa.</li>
+        <li>Con il livello LISA acceso il passaggio del mouse mostra la scheda della UPL invece di quella dell'edificio; il link condiviso conserva la variabile scelta (<code>&amp;m=alt</code>, <code>cop</code> o <code>den</code>). Dettagli e limiti del metodo sono nella Metodologia, punto 8.</li>
+      </ul>
+      <h2>10. Il menu delle viste</h2>
       <figure><button type="button" class="gal" data-gal="img/guida/dial.png" data-cap="Il menu rotondo arancione, in alto a sinistra" title="Ingrandisci: Il menu rotondo arancione, in alto a sinistra"><img src="img/guida/dial.png" alt="Il menu delle viste aperto" loading="lazy"></button><figcaption>Il menu rotondo arancione, in alto a sinistra</figcaption></figure>
       <p>Dall'alto: <b>Home</b> (inquadra Palermo), <b>zoom +</b>, <b>zoom −</b>, <b>vista Mappa</b>, <b>tema chiaro/scuro</b>, <b>schermo intero</b>.</p>
-      <h2>10. Scorciatoie da tastiera</h2>
+      <h2>11. Scorciatoie da tastiera</h2>
       <table class="tasti">
         <tr><td><kbd>/</kbd></td><td>Va alla barra di ricerca</td></tr>
         <tr><td><kbd>↑</kbd> <kbd>↓</kbd> <kbd>Invio</kbd></td><td>Nell'elenco dei suggerimenti: scorre e sceglie</td></tr>
@@ -385,6 +430,7 @@
 <script src="js/pannello.js"></script>
 <script src="js/indirizzi.js"></script>
 <script src="js/isolati.js"></script>
+<script src="js/moran.js"></script>
 <script src="js/cerca.js"></script>
 <script src="js/guida.js"></script>
 <script src="js/app.js"></script>

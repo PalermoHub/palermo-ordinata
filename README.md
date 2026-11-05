@@ -16,6 +16,7 @@ Poi apri `http://localhost:8765/`. Serve un server locale: `fetch` dei JSON non 
 - **Ricerca** (barra in basso): circoscrizione, quartiere, UPL o indirizzo. Con «via Maqueda 100» la mappa si centra sull'edificio più vicino al civico ANNCSU e lo evidenzia (aggancio approssimato: l'edificio più probabile). La scheda al passaggio del mouse mostra anche via e civici dell'edificio, in Mappa e in Ordinata.
 - **Colore:** altezza, superficie dell'impronta oppure uso.
 - **Zone:** un clic su una zona (mappa, blocco, mini-mappa o tabella) la seleziona e porta lì la vista; Esc o "Mostra tutta la città" la deseleziona.
+- **Autocorrelazione (LISA):** interruttore nella legenda o tab Moran. Sulle 55 UPL mostra Moran's I globale (con p da 9.999 permutazioni) e i cluster LISA locali: hotspot (alto-alto), coldspot (basso-basso) e outlier (alto tra bassi, basso tra alti), per altezza media, copertura del suolo o densità di edifici. Pesi: contiguità queen. Il p locale non è corretto per i test multipli. Dati in `data/moran.json`, calcolo in `scripts/08_moran.py`. Link: `&m=alt|cop|den`. Spiegazione e screenshot nei tab Guida (punto 9) e Metodologia (punto 8).
 - **Mappa:** rotella o pinch per lo zoom, trascinamento per spostarsi, doppio clic nella vista Ordinata per tornare all'inquadratura. Il passaggio del mouse (o un tap) mostra uso, altezza, superficie e zona dell'edificio.
 - **Tema e base:** scuro di default, chiaro dal pulsante dello speed-dial; base satellitare opzionale.
 - **Link diretti:** `#l=circ|quar|upl&v=map|sorted&z=<id zona>`, ad esempio `#l=upl&v=sorted&z=upl-tribunali-o-kalsa`.
@@ -26,7 +27,7 @@ Idea e metodo: Adam Roberts, [30daymap2026 / day-03-polygons](https://github.com
 
 ## Struttura del codice
 
-`js/geo.js` (UTM → lon/lat → Mercator), `js/layout.js` (impacchettamento a scaffali, invariato), `js/blocchi.js` (blocchi per zona), `js/citta.js` (caricamento del livello), `js/base.js` (MapLibre), `js/render.js` (canvas, animazione, LOD), `js/pannello.js` (pannello), `js/app.js` (orchestrazione). Test: `node --test tests/*.test.js`. Il dato `data/index.json` contiene, per ogni zona, `ox` e `oy`, l'angolo SW della zona in decimetri dall'angolo SW della città (scritti da `scripts/02_export.py`).
+`js/geo.js` (UTM → lon/lat → Mercator), `js/layout.js` (impacchettamento a scaffali, invariato), `js/blocchi.js` (blocchi per zona), `js/citta.js` (caricamento del livello), `js/base.js` (MapLibre), `js/render.js` (canvas, animazione, LOD), `js/pannello.js` (pannello), `js/moran.js` (autocorrelazione), `js/app.js` (orchestrazione). Test: `node --test tests/*.test.js`. Il dato `data/index.json` contiene, per ogni zona, `ox` e `oy`, l'angolo SW della zona in decimetri dall'angolo SW della città (scritti da `scripts/02_export.py`).
 
 ## Dati
 

@@ -376,3 +376,37 @@ kbd{display:inline-block;min-width:18px;padding:1px 5px;border:1px solid var(--p
   #galleria button{width:36px;height:36px}
 }
 .tab-content a{color:var(--accent,#f97316);text-decoration:underline;text-underline-offset:2px}
+
+/* autocorrelazione spaziale (Moran, LISA) */
+#moran-leg{margin:2px 0 8px}
+#moran-leg[hidden]{display:none}
+.mo-leg{display:flex;align-items:center;gap:8px;font-size:11.5px;padding:2px 0}
+.mo-leg i,.mo-gh i{flex:0 0 12px;height:12px;border-radius:3px}
+.mo-leg span{flex:1}
+.mo-leg b{font-variant-numeric:tabular-nums}
+.btn-acc{width:100%;margin:0 0 12px;padding:8px;font-weight:700;font-size:12px;border-radius:6px;cursor:pointer;background:none;color:var(--text);border:1px solid var(--panel-border)}
+.btn-acc[aria-pressed="true"]{background:var(--accent-fill);color:var(--on-accent);border-color:var(--accent-fill)}
+.mo-card{display:flex;gap:16px;align-items:center;border:1px solid var(--panel-border);border-radius:8px;padding:10px 12px;margin-bottom:8px}
+.mo-big{display:flex;flex-direction:column;align-items:flex-start}
+.mo-big b{font-size:30px;line-height:1;font-variant-numeric:tabular-nums}
+.mo-big span{font-size:11px;color:var(--text-dim)}
+.mo-dl{display:grid;grid-template-columns:1fr auto;gap:2px 14px;margin:0;font-size:12px;flex:1}
+.mo-dl dt{color:var(--text-dim)}
+.mo-dl dd{margin:0;font-variant-numeric:tabular-nums;text-align:right}
+#tab-moran h3{font-size:12px;margin:14px 0 6px}
+.mo-scatter{width:100%;height:auto;display:block}
+.mo-scatter text{font-size:9px;fill:var(--text-dim)}
+.mo-scatter .ax{stroke:var(--panel-border);stroke-width:1}
+.mo-scatter .fit{stroke:var(--text-dim);stroke-width:1.2;stroke-dasharray:4 3}
+.mo-scatter .pt{stroke:var(--panel);stroke-width:1;cursor:pointer}
+.mo-scatter .pt.ns{opacity:.55}
+.mo-grp{margin-bottom:12px}
+.mo-gh{display:flex;align-items:center;gap:8px;font-size:12px}
+.mo-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.mo-chip{font-size:11px;padding:3px 8px;border-radius:12px;background:none;color:var(--text);border:1px solid var(--panel-border);cursor:pointer}
+.mo-chip:hover{border-color:var(--accent)}
+#moran-tip{position:fixed;z-index:7;pointer-events:none;background:var(--panel);color:var(--text);border:1px solid var(--panel-border);border-radius:6px;padding:6px 10px;font-size:12px;box-shadow:0 4px 14px var(--shadow);max-width:260px}
+#moran-tip[hidden]{display:none}
+#moran-tip strong{display:block;margin-bottom:2px}
+/* con il livello LISA acceso gli edifici e le loro interazioni restano fuori dalla Mappa */
+body.moran-on:not(.vista-ordinata) #cv,body.moran-on:not(.vista-ordinata) #ov,body.moran-on:not(.vista-ordinata) #scala,body.moran-on:not(.vista-ordinata) #tip{visibility:hidden}

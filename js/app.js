@@ -11,7 +11,7 @@ const NUM = new Intl.NumberFormat('it-IT', { useGrouping: 'always' });
 
 const S = {
   index: null, citta: null, layout: null, livello: 'circ', vista: 'map', colore: 'alt', raggruppa: false, lato: true,
-  sel: null, conf: null, isola: false, isolati: false, isoHover: -1, isoSel: null, isoFocus: null, isoSet: null, isoItems: [], isoTitolo: '', isoZona: '', spente: new Set(), liveZoom: true, zonaHover: null, views: { sorted: { k: 1, tx: 0, ty: 0 } }, fitOrd: true,
+  sel: null, conf: null, isola: false, isolati: false, moran: null, isoHover: -1, isoSel: null, isoFocus: null, isoSet: null, isoItems: [], isoTitolo: '', isoZona: '', spente: new Set(), liveZoom: true, zonaHover: null, views: { sorted: { k: 1, tx: 0, ty: 0 } }, fitOrd: true,
   t: 0, lin: 0, anim: false, caricando: false, coda: [], dpr: 1, W: 0, H: 0, inset: 0, pw: 400, insetB: 0, gamma: 0, mediana: 0, tema: 'dark',
   colori: Render.COLORI, hover: -1,
 };
@@ -286,7 +286,7 @@ function leggiHash() {
   const x = (p.get('x') || '').split(',').filter(Boolean).map(Number).filter(n => Number.isInteger(n) && n >= 0 && n < 32);
   const tab = p.get('p');
   return { l: LIVELLI.includes(l) ? l : 'circ', v: v === 'sorted' ? 'sorted' : 'map', z: p.get('z'), c: cam,
-    k: ['uso', 'alt', 'sup'].includes(k) ? k : 'alt', x, g: p.get('g') === '1', s: p.get('s') !== '0', i: p.get('i') === '1', o: p.get('o') === '1', a: /^\w{1,30}$/.test(p.get('a') || '') ? p.get('a') : null,
+    k: ['uso', 'alt', 'sup'].includes(k) ? k : 'alt', x, g: p.get('g') === '1', s: p.get('s') !== '0', i: p.get('i') === '1', o: p.get('o') === '1', m: ['alt', 'cop', 'den'].includes(p.get('m')) ? p.get('m') : null, a: /^\w{1,30}$/.test(p.get('a') || '') ? p.get('a') : null,
     t: p.get('t') === 'light' || p.get('t') === 'dark' ? p.get('t') : null,
     p: tab && document.querySelector(`.tab-hdr[data-tab="${CSS.escape(tab)}"]`) ? tab : 'zone' };
 }
@@ -298,7 +298,7 @@ function costruisciHash() {
   if (S.vista === 'map' && B) { const m = B.map, ce = m.getCenter(); c = `&c=${m.getZoom().toFixed(2)}/${ce.lat.toFixed(4)}/${ce.lng.toFixed(4)}`; }
   const tab = document.querySelector('.tab-hdr.active'), p = tab && tab.dataset.tab !== 'zone' ? `&p=${tab.dataset.tab}` : '';
   const x = S.spente.size ? `&x=${[...S.spente].sort((a, b) => a - b).join(',')}` : '';
-  return `l=${S.livello}&v=${S.vista}${z}${c}&k=${S.colore}${x}${S.raggruppa ? '&g=1' : ''}${S.lato ? '' : '&s=0'}${S.isola ? '&i=1' : ''}${S.isolati ? '&o=1' : ''}${S.isoFocus !== null ? `&a=${encodeURIComponent(Isolati.lista[S.isoFocus].idag)}` : ''}&t=${S.tema}${p}`;
+  return `l=${S.livello}&v=${S.vista}${z}${c}&k=${S.colore}${x}${S.raggruppa ? '&g=1' : ''}${S.lato ? '' : '&s=0'}${S.isola ? '&i=1' : ''}${S.isolati ? '&o=1' : ''}${S.moran ? `&m=${S.moran}` : ''}${S.isoFocus !== null ? `&a=${encodeURIComponent(Isolati.lista[S.isoFocus].idag)}` : ''}&t=${S.tema}${p}`;
 }
 function scriviHash() {
   if (!S.citta) return;
@@ -396,22 +396,56 @@ async function impostaIsolati(on) {
   }
 }
 
+/* ---------- autocorrelazione spaziale (Moran, LISA): livello UPL sulla Mappa + tab Moran ---------- */
+let moranVar = 'alt';
+function moranAzioni() {
+  return { vaiA: id => { const b = Moran.bbox(id); if (!b) return; if (S.vista !== 'map') vaiA('map'); B.vaiA(b, true, S.inset, 15); } };
+}
+function disegnaMoran() {
+  if (!Moran.pronto()) return;
+  document.querySelectorAll('#seg-moran button').forEach(b => { const on = b.dataset.m === moranVar; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+  Moran.pannello($('moran-body'), moranVar, moranAzioni());
+  const leg = $('moran-leg'); leg.hidden = !S.moran; if (S.moran) Moran.legenda(leg, moranVar);
+}
+async function impostaMoran(on) {
+  const sw = $('moran'), btn = $('moran-btn');
+  const aggiorna = () => { sw.checked = !!S.moran; btn.setAttribute('aria-pressed', String(!!S.moran)); btn.textContent = S.moran ? 'Nascondi dalla mappa' : 'Mostra sulla mappa'; document.body.classList.toggle('moran-on', !!S.moran); };
+  if (!on) { S.moran = null; Moran.mostra(B.map, false); aggiorna(); disegnaMoran(); scriviHash(); return; }
+  try {
+    if (!Moran.pronto()) { mostra('Caricamento autocorrelazione…'); await Moran.carica(S.index); nascondi(); }
+    if (S.vista !== 'map') vaiA('map');
+    if (S.isolati) await impostaIsolati(false);
+    S.moran = moranVar; nascondiTip(); S.hover = -1;
+    Moran.mostra(B.map, true, moranVar); aggiorna(); disegnaMoran(); scriviHash();
+    B.vaiA(bboxCitta(), true, S.inset);
+  } catch (err) {
+    console.error(err); nascondi(); S.moran = null; aggiorna();
+    avvisa(`Caricamento dell'autocorrelazione non riuscito (${err.message}).`);
+  }
+}
+async function scegliMoran(v) {
+  moranVar = v;
+  if (!Moran.pronto()) { try { await Moran.carica(S.index); } catch (err) { avvisa(`Caricamento dell'autocorrelazione non riuscito (${err.message}).`); return; } }
+  if (S.moran) { S.moran = v; Moran.mostra(B.map, true, v); scriviHash(); }
+  disegnaMoran();
+}
+
 /* ---------- vista Mappa: eventi MapLibre ---------- */
 function collegaMappa() {
   B.suMovimento(() => { if (!S.anim && S.t < 1) R.disegna(); });
-  B.map.on('mousemove', ev => { if (S.vista === 'map') mostraTip(ev.point.x, ev.point.y, ev.originalEvent.clientX, ev.originalEvent.clientY); });
+  B.map.on('mousemove', ev => { if (S.vista === 'map' && !S.moran) mostraTip(ev.point.x, ev.point.y, ev.originalEvent.clientX, ev.originalEvent.clientY); });
   B.map.on('mouseout', () => { S.zonaHover = null; S.isoHover = -1; nascondiTip(); if (S.vista === 'map') R.disegna(); });
   B.map.on('movestart', nascondiTip);
   B.map.on('moveend', () => { if (!S.anim && S.citta) scriviHash(); });
   B.map.doubleClickZoom.disable();                                             // il doppio click apre la vista Ordinata della zona
   B.map.on('dblclick', ev => {
-    if (S.vista !== 'map' || S.anim) return;
+    if (S.vista !== 'map' || S.anim || S.moran) return;
     ev.preventDefault();
     const ih = R.isolatoIn(ev.point.x, ev.point.y);
     if (ih >= 0) apriIsolato(ih); else apriOrdinata(R.zonaIn(ev.point.x, ev.point.y));
   });
   B.map.on('click', ev => {
-    if (S.vista !== 'map' || S.anim) return;
+    if (S.vista !== 'map' || S.anim || S.moran) return;
     const ih = R.isolatoIn(ev.point.x, ev.point.y), tocco = ev.originalEvent.pointerType && ev.originalEvent.pointerType !== 'mouse';
     if (ih >= 0) { if (tocco && doppioTap(ev.point.x, ev.point.y)) apriIsolato(ih); else apriScheda(ih); return; }   // un clic su un isolato apre la sua scheda, il doppio clic la sua vista Ordinata
     if (S.isoSel !== null) chiudiScheda();
@@ -655,7 +689,11 @@ function collegaInterfaccia() {
   try { S.liveZoom = localStorage.getItem('live-zoom') !== '0'; } catch (_) {}
   $('live-zoom').checked = S.liveZoom;
   $('live-zoom').addEventListener('change', e => { S.liveZoom = e.target.checked; try { localStorage.setItem('live-zoom', S.liveZoom ? '1' : '0'); } catch (_) {} });
-  $('isolati').addEventListener('change', e => impostaIsolati(e.target.checked));
+  $('isolati').addEventListener('change', e => { if (e.target.checked && S.moran) impostaMoran(false); impostaIsolati(e.target.checked); });
+  $('moran').addEventListener('change', e => impostaMoran(e.target.checked));
+  $('moran-btn').addEventListener('click', () => impostaMoran(!S.moran));
+  document.querySelectorAll('#seg-moran button').forEach(b => b.addEventListener('click', () => scegliMoran(b.dataset.m)));
+  document.querySelector('.tab-hdr[data-tab="moran"]').addEventListener('click', () => scegliMoran(moranVar));
   $('scheda-iso-chiudi').addEventListener('click', chiudiScheda);
   $('isola').addEventListener('change', e => { S.isola = e.target.checked; scriviHash(); nascondiTip(); R.ricolora(); R.disegna(); if (S.isola && S.sel !== null) seleziona(S.sel); });
   $('filtri-toggle').addEventListener('click', () => { const c = $('filtri').classList.toggle('chiuso'); $('filtri-toggle').setAttribute('aria-expanded', String(!c)); });
@@ -743,7 +781,8 @@ function ridimensiona() {
     if (h.c) applicaCamera(h.c);                                                // camera esplicita nell'hash: prevale sull'inquadratura
     S.vista = h.v; S.lin = S.t = h.v === 'sorted' ? 1 : 0;
     impostaInterazione(); aggiornaUI(); R.disegna(); scriviHash();
-    if (h.o || h.a) {
+    if (h.m) { moranVar = h.m; await impostaMoran(true); if (h.c) applicaCamera(h.c); }
+    else if (h.o || h.a) {
       await impostaIsolati(true);
       const k = h.a ? Isolati.trova(h.a) : -1;
       if (k >= 0) await apriIsolato(k, true);                                    // link con un isolato: si riapre direttamente la sua vista Ordinata
