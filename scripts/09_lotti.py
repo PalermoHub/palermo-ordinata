@@ -5,8 +5,8 @@ Un edificio conta in una particella se almeno il 10% della sua impronta ci cade 
 sovrapposizione maggiore; l'edificio e' "a cavallo" se conta in piu' particelle (vedi lotti.py).
 
 Produce:
-  data/lotti.pmtiles        tile z12-17 (layer "particelle"), feature id = k (indice nel gpkg), proprieta':
-                            k, foglio, Paricella, m2, cop (0-100, troncato), n (edifici), lib (1 = senza edifici), cav (1 = tocca edifici a cavallo)
+  data/lotti.pmtiles        tile z12-17 (layer "particelle"), proprieta':
+                            k (indice nel gpkg), foglio, Paricella, m2, cop (0-100, troncato), n (edifici), lib (1 = senza edifici), cav (1 = tocca edifici a cavallo)
   data/lotti/edifici.json   { "e": [k | -1 per edificio, ordine "UPL concatenate" come civici.json/isolati.json],
                               "cav": [posizioni in "e" degli edifici a cavallo], "lu": { "<k>": posizione UPL } per i lotti con edifici }
   data/lotti/upl-<u>.json   { "<k>": [foglio, particella, m2, anelli] } per i lotti con edifici della UPL u (anelli in dm dall'angolo
@@ -53,7 +53,7 @@ L, E = calcola(lm, b)
 L["k"] = np.arange(len(L))
 print(f"lotti con edifici: {int((~L.lib).sum())}, liberi: {int(L.lib.sum())}, edifici senza lotto: {int((E.lotto < 0).sum())}, a cavallo: {int(E.cav.sum())}")
 
-# --- PMTiles: geojsonl in WGS84 con le statistiche, poi tippecanoe (feature id = k) ---
+# --- PMTiles: geojsonl in WGS84 con le statistiche, poi tippecanoe ---
 lav = os.path.join(WORK, "lotti.geojsonl")
 foglio = lotti["foglio"].astype(str).values
 parc = lotti["Paricella"].astype(str).values
@@ -64,7 +64,7 @@ with open(lav, "w") as f:
              "lib": int(r.lib), "cav": int(r.cav)}
         f.write(json.dumps({"type": "Feature", "properties": p, "geometry": json.loads(shapely.to_geojson(g))}) + "\n")
 pm = os.path.join(OUT, "lotti.pmtiles")
-subprocess.run(["tippecanoe", "-q", "-Z12", "-z17", "-l", "particelle", "--use-attribute-for-id=k", "--no-tile-size-limit",
+subprocess.run(["tippecanoe", "-q", "-Z12", "-z17", "-l", "particelle", "--no-tile-size-limit",
                 "--no-feature-limit", "--no-tiny-polygon-reduction", "--force", "-o", pm, lav], check=True)
 
 # --- legame edificio -> lotto, nello spazio "UPL concatenate" ---

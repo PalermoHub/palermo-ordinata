@@ -11,11 +11,11 @@ const NUM = new Intl.NumberFormat('it-IT', { useGrouping: 'always' });
 
 const S = {
   index: null, citta: null, layout: null, livello: 'circ', vista: 'map', colore: 'alt', raggruppa: false, lato: true,
-  sel: null, conf: null, isola: false, isolati: false, moran: null, isoHover: -1, isoSel: null, isoFocus: null, isoSet: null, isoItems: [], isoTitolo: '', isoZona: '', spente: new Set(), liveZoom: true, zonaHover: null, views: { sorted: { k: 1, tx: 0, ty: 0 } }, fitOrd: true,
+  sel: null, conf: null, isola: false, isolati: false, lotti: false, lottoSel: null, moran: null, isoHover: -1, isoSel: null, isoFocus: null, isoSet: null, isoItems: [], isoTitolo: '', isoZona: '', spente: new Set(), liveZoom: true, zonaHover: null, views: { sorted: { k: 1, tx: 0, ty: 0 } }, fitOrd: true,
   t: 0, lin: 0, anim: false, caricando: false, coda: [], dpr: 1, W: 0, H: 0, inset: 0, pw: 400, insetB: 0, gamma: 0, mediana: 0, tema: 'dark',
   colori: Render.COLORI, hover: -1,
 };
-let B, R;
+let B, R, LM;
 const M = new Float64Array(6);
 const stile = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 
@@ -396,6 +396,22 @@ async function impostaIsolati(on) {
   }
 }
 
+/* ---------- lotti catastali (particelle): livello vettoriale sulla Mappa ---------- */
+async function impostaLotti(on) {
+  const sw = $('lotti'), leg = $('lotti-leg');
+  if (!on) { S.lotti = false; LM.accendi(false); sw.checked = false; leg.hidden = true; document.body.classList.remove('lotti-on'); scriviHash(); return; }
+  try {
+    if (S.moran) await impostaMoran(false);
+    if (S.isolati) await impostaIsolati(false);
+    if (!Lotti.pronto()) { mostra('Caricamento lotti…'); await Lotti.carica(); nascondi(); }
+    LM.accendi(true); LM.legenda(leg); leg.hidden = false; document.body.classList.add('lotti-on');
+    S.lotti = true; sw.checked = true; scriviHash();
+  } catch (err) {
+    console.error(err); nascondi(); S.lotti = false; LM.accendi(false); sw.checked = false; leg.hidden = true; document.body.classList.remove('lotti-on');
+    avvisa(`Caricamento dei lotti non riuscito (${err.message}).`);
+  }
+}
+
 /* ---------- autocorrelazione spaziale (Moran, LISA): livello UPL sulla Mappa + tab Moran ---------- */
 let moranVar = 'alt';
 function moranAzioni() {
@@ -415,6 +431,7 @@ async function impostaMoran(on) {
     if (!Moran.pronto()) { mostra('Caricamento autocorrelazione…'); await Moran.carica(S.index); nascondi(); }
     if (S.vista !== 'map') vaiA('map');
     if (S.isolati) await impostaIsolati(false);
+    if (S.lotti) await impostaLotti(false);
     S.moran = moranVar; nascondiTip(); S.hover = -1;
     Moran.mostra(B.map, true, moranVar); aggiorna(); disegnaMoran(); scriviHash();
     B.vaiA(bboxCitta(), true, S.inset);
@@ -689,7 +706,8 @@ function collegaInterfaccia() {
   try { S.liveZoom = localStorage.getItem('live-zoom') !== '0'; } catch (_) {}
   $('live-zoom').checked = S.liveZoom;
   $('live-zoom').addEventListener('change', e => { S.liveZoom = e.target.checked; try { localStorage.setItem('live-zoom', S.liveZoom ? '1' : '0'); } catch (_) {} });
-  $('isolati').addEventListener('change', e => { if (e.target.checked && S.moran) impostaMoran(false); impostaIsolati(e.target.checked); });
+  $('isolati').addEventListener('change', e => { if (e.target.checked && S.moran) impostaMoran(false); if (e.target.checked && S.lotti) impostaLotti(false); impostaIsolati(e.target.checked); });
+  $('lotti').addEventListener('change', e => impostaLotti(e.target.checked));
   $('moran').addEventListener('change', e => impostaMoran(e.target.checked));
   $('moran-btn').addEventListener('click', () => impostaMoran(!S.moran));
   document.querySelectorAll('#seg-moran button').forEach(b => b.addEventListener('click', () => scegliMoran(b.dataset.m)));
@@ -763,6 +781,7 @@ function ridimensiona() {
     S.index = await (await fetch('data/index.json')).json();
     S.gamma = Geo.convergenza(S.index);
     B = Base.crea($('map'), S.tema);
+    LM = LottiMappa.crea(B.map);
     R = Render.crea(S, B, cv, ov);
     const disegnaOrig = R.disegna;                                              // la X segue il blocco selezionato a ogni ridisegno
     R.disegna = (...args) => { const r = disegnaOrig.apply(R, args); posizionaX(); return r; };

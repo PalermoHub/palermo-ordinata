@@ -79,6 +79,8 @@
     <label class="chk sw">Lato lungo in orizzontale<input type="checkbox" id="lato" role="switch" autocomplete="off" checked></label>
     <label class="chk sw" title="Mostra solo gli edifici e il confine della zona selezionata">Isola zona selezionata<input type="checkbox" id="isola" role="switch" autocomplete="off"></label>
     <label class="chk sw" title="Mostra sulla mappa il contorno degli isolati (aggregati strutturali del DPC); clic su un isolato per le sue statistiche">Isolati<input type="checkbox" id="isolati" role="switch" autocomplete="off"></label>
+    <label class="chk sw" title="Mostra sulla mappa le particelle catastali (settembre 2026) colorate per rapporto di copertura; clic su un lotto per la sua scheda, doppio clic per vederlo con i suoi edifici">Lotti<input type="checkbox" id="lotti" role="switch" autocomplete="off"></label>
+    <div id="lotti-leg" hidden></div>
     <label class="chk sw" title="Mostra sulla mappa i cluster di autocorrelazione spaziale (LISA) delle UPL, al posto degli edifici: hotspot, coldspot e outlier">Autocorrelazione (LISA)<input type="checkbox" id="moran" role="switch" autocomplete="off"></label>
     <div id="moran-leg" hidden></div>
     <label class="chk sw" title="Quando nascondi o mostri una classe dalla legenda, la vista si adatta agli edifici rimasti">Live Zoom<input type="checkbox" id="live-zoom" role="switch" autocomplete="off" checked></label>
@@ -421,6 +423,7 @@
 </nav>
 
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js" integrity="sha384-SYKAG6cglRMN0RVvhNeBY0r3FYKNOJtznwA0v7B5Vp9tr31xAHsZC0DqkQ/pZDmj" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/pmtiles@3.2.1/dist/pmtiles.js" integrity="sha384-QfbOCebHNw8pQiPAOd2IFee2v2A5VYZxBk0+JGZ5H+3mfzVIp6zsQNkTsfGJot93" crossorigin="anonymous"></script>
 <script src="js/geo.js"></script>
 <script src="js/layout.js"></script>
 <script src="js/blocchi.js"></script>
@@ -431,6 +434,7 @@
 <script src="js/indirizzi.js"></script>
 <script src="js/isolati.js"></script>
 <script src="js/lotti.js"></script>
+<script src="js/lotti-mappa.js"></script>
 <script src="js/moran.js"></script>
 <script src="js/cerca.js"></script>
 <script src="js/guida.js"></script>
