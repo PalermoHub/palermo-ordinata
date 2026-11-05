@@ -34,6 +34,7 @@ Idea e metodo: Adam Roberts, [30daymap2026 / day-03-polygons](https://github.com
 |---|---|
 | Edifici | `DigitalTwin/dati/edifici/edificato.gpkg` (111.844 poligoni, EPSG:4326, con altezza e uso) |
 | Confini | `palermo_popolazione/dati/geo_{circoscrizioni,quartieri,upl}.geojson` (EPSG:32632) |
+| Isolati | [DPC Aggregati Strutturali ITG Isole](https://github.com/pcm-dpc/DPC-Aggregati-Strutturali-ITG-Isole), `Isole/Sicilia/Palermo/Palermo.shp` (46.852 aggregati, CC BY 4.0), elaborato da `scripts/07_isolati.py` in `data/isolati.json` |
 
 ### Fonti degli edifici
 
@@ -57,6 +58,7 @@ Il campo `source` vale `Edificato_join_vol` (1.521 edifici) quando la geometria 
 - Gli edifici sotto i 5 m² (352) non sono mostrati. Le aree sono calcolate dalla geometria, non da `area_mq` (nulla in 11.256 righe).
 - 1.796 edifici hanno altezza 0: sono nella classe "altezza non disponibile".
 - La banca dati può spezzare un isolato in più edifici: i conteggi non sono unità catastali.
+- **Isolati = aggregati strutturali del DPC**: gruppi di edifici contigui, non isolati delimitati da strade (mediana: 1 edificio). Ogni edificio va all'aggregato con la sovrapposizione maggiore, altrimenti al più vicino entro 3 m; 4.451 edifici (4%) restano senza isolato. Si esportano solo i 39.545 aggregati con almeno un edificio. Il livello si accende con «Isolati» nella legenda (solo vista Mappa); il doppio clic su un isolato apre la vista Ordinata del solo isolato, con statistiche e barre calcolate sui suoi edifici (`data/isolati.json`, campo `e`: edificio → isolato, indicizzato come `civici.json`; hash `a=<IDAG>`).
 - Le impronte sono semplificate a 0,3 m.
 - Le immagini sono in coordinate metriche locali, senza basemap: la rotazione dipende dalla griglia UTM 32N.
 
@@ -109,5 +111,6 @@ Il disegno usa Pillow e lo stesso layout dell'app; servono `ffmpeg` e, per Inter
 
 - **Codice** (`index.html`, `css/`, `js/`): [MIT](LICENSE). L'idea e il metodo derivano da [day-03-polygons](https://github.com/abenrob/30daymap2026/tree/main/day-03-polygons) di Adam Roberts, che ha autorizzato l'adattamento a Palermo; il repository originale non indica una licenza.
 - **Dati** (`data/`): sintesi degli edifici di [DigitalTwin Palermo](https://palermodigitaltwin.opendatasicilia.it/fonti.html) da Overture Maps, Global Building Atlas, OpenBuildingMap e rilievo CTC 2006 (CC BY 4.0). La licenza della sintesi è ancora da verificare: finché non è confermata, valgono le condizioni delle fonti (alcune, come OpenStreetMap/ODbL, impongono attribuzione e condivisione allo stesso modo). Confini: ISTAT/Comune di Palermo.
+- **Isolati** (`data/isolati.json`): aggregati strutturali del Dipartimento della Protezione Civile (Presidenza del Consiglio dei Ministri), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.it), con contorni semplificati e statistiche calcolate sugli edifici di questa mappa.
 - **Civici** (`data/civici.json`, per la ricerca e per gli indirizzi nella scheda): ANNCSU, Archivio nazionale dei numeri civici e delle strade urbane (Agenzia delle Entrate e ISTAT), febbraio 2026; dati aperti, da citare come fonte.
 - **Base cartografica**: © OpenStreetMap contributors, tramite OpenFreeMap.

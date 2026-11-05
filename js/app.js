@@ -11,7 +11,7 @@ const NUM = new Intl.NumberFormat('it-IT', { useGrouping: 'always' });
 
 const S = {
   index: null, citta: null, layout: null, livello: 'circ', vista: 'map', colore: 'alt', raggruppa: false, lato: true,
-  sel: null, conf: null, isola: false, spente: new Set(), liveZoom: true, zonaHover: null, views: { sorted: { k: 1, tx: 0, ty: 0 } }, fitOrd: true,
+  sel: null, conf: null, isola: false, isolati: false, isoHover: -1, isoSel: null, isoFocus: null, isoSet: null, isoItems: [], isoTitolo: '', isoZona: '', spente: new Set(), liveZoom: true, zonaHover: null, views: { sorted: { k: 1, tx: 0, ty: 0 } }, fitOrd: true,
   t: 0, lin: 0, anim: false, caricando: false, coda: [], dpr: 1, W: 0, H: 0, inset: 0, pw: 400, insetB: 0, gamma: 0, mediana: 0, tema: 'dark',
   colori: Render.COLORI, hover: -1,
 };
@@ -47,7 +47,7 @@ async function caricaLivello(liv) {
     S.citta = null; S.sel = null; S.conf = null; S.zonaHover = null; nascondiTip();
     const c = await Citta.carica(liv, S.index);
     preparaZone(c);
-    S.citta = c; S.livello = liv;
+    S.citta = c; S.livello = liv; S.isoFocus = null; S.isoSet = null; S.isoItems = [];     // gli indici degli edifici cambiano con il livello
     Indirizzi.carica(liv, S.index);                                   // indirizzi per il tooltip: in background, il tooltip li mostra appena pronti
     const a = Float64Array.from(c.items, b => b.area).sort(); S.mediana = a.length ? Math.round(a[a.length >> 1]) : 0;
     ricalcola(); minimappa(); nascondi(); aggiornaUI(); scriviHash();
@@ -68,10 +68,22 @@ function ricalcola() {
     else ord.sort((a, b) => items[b].area - items[a].area);
     return { items, order: ord, group: S.raggruppa ? i => items[i].cls[k] : null, indici: p.indici };
   });
-  S.layout = Blocchi.disponi(S.citta.zone, perZona, { margine: 4000, cittaH: S.index.h });
+  S.layout = S.isoFocus !== null ? layoutIsolato(it, k) : Blocchi.disponi(S.citta.zone, perZona, { margine: 4000, cittaH: S.index.h });
   S.views.sorted = R.adattaOrdinata(); S.fitOrd = true;
   R.carica();
   nascondiTip(); Pannello.aggiorna(S, azioni); R.disegna();
+}
+
+/* un solo blocco con gli edifici dell'isolato in primo piano; stessa forma di Blocchi.disponi (pos per tutti gli edifici del livello) */
+function layoutIsolato(it, k) {
+  const ids = S.isoItems, items = ids.map(g => it[g]), ord = items.map((_, i) => i);
+  if (S.raggruppa) ord.sort((a, b) => items[a].cls[k] - items[b].cls[k] || items[b].area - items[a].area);
+  else ord.sort((a, b) => items[b].area - items[a].area);
+  const r = Layout.pack(items, ord, 1.4, S.raggruppa ? i => items[i].cls[k] : null);
+  const w = Math.max(r.w, 500), h = Math.max(r.h, 500), cx = (w - r.w) / 2, cy = (h - r.h) / 2;   // blocco minimo di 50 m, contenuto centrato
+  const pos = new Float64Array(2 * it.length);
+  ids.forEach((g, j) => { pos[2 * g] = cx + r.pos[2 * j]; pos[2 * g + 1] = cy + r.pos[2 * j + 1]; });
+  return { pos, blocchi: [{ z: 0, x: 0, y: 0, w, h, etichette: (r.labels || []).map(l => ({ cls: l.cls, x: cx, y: cy + l.y })) }], w, h, sposta: [0, 0] };
 }
 
 /* ---------- animazione Mappa ⇄ Ordinata ---------- */
@@ -95,15 +107,16 @@ function vaiA(verso) {
   if (!S.citta) return;
   S.vista = verso; aggiornaUI();
   const target = verso === 'sorted' ? 1 : 0;
-  if (verso === 'sorted') S.evid = null;                                        // l'evidenziazione vale solo in Mappa
-  if (S.lin === target) { S.lin = S.t = target; impostaInterazione(); R.disegna(); scriviHash(); return; }
+  if (verso === 'sorted') { S.evid = null; chiudiScheda(); S.isoHover = -1; }   // evidenziazione e isolati valgono solo in Mappa
+  if (S.lin === target) { S.lin = S.t = target; impostaInterazione(); if (target === 0 && S.isoFocus !== null) liberaIsolato(); else R.disegna(); scriviHash(); return; }
+  if (verso === 'map' && S.isoFocus !== null) B.vaiA(Isolati.lista[S.isoFocus].bbox, false, S.inset, 19);   // la mappa atterra sull'isolato
   S.anim = true; impostaInterazione(); nascondiTip();
   let prev = performance.now();
   (function passo(now) {
     const d = (now - prev) / DUR; prev = now;
     S.lin = target > S.lin ? Math.min(target, S.lin + d) : Math.max(target, S.lin - d);
     S.t = ease(S.lin); R.disegna();
-    if (S.lin === target) { S.anim = false; impostaInterazione(); scriviHash(); if (S.coda.length) svuotaCoda(); return; }
+    if (S.lin === target) { S.anim = false; impostaInterazione(); if (target === 0 && S.isoFocus !== null) liberaIsolato(); scriviHash(); if (S.coda.length) svuotaCoda(); return; }
     requestAnimationFrame(passo);
   })(prev);
 }
@@ -214,7 +227,7 @@ function apriOrdinata(zi) {
   if (S.vista === 'sorted') { fine(); return; }
   vaiA('sorted'); S.coda.push(fine); svuotaCoda();
 }
-const azioni = { seleziona: (zi, z) => { if (mobile() && pannelloAperto()) impostaPannello(false); seleziona(zi, z); }, filtra, confronta, solo: soloClasse, azzera: azzeraFiltro, vaiAZona, vaiAEdificio, reset: resetTutto };
+const azioni = { esciIsolato: () => vaiA('map'), evidenzia: i => { S.evid = S.evid === i ? null : i; R.disegna(); }, seleziona: (zi, z) => { if (mobile() && pannelloAperto()) impostaPannello(false); seleziona(zi, z); }, filtra, confronta, solo: soloClasse, azzera: azzeraFiltro, vaiAZona, vaiAEdificio, reset: resetTutto };
 
 /* ---------- mini-mappa ---------- */
 function minimappa() {
@@ -273,7 +286,7 @@ function leggiHash() {
   const x = (p.get('x') || '').split(',').filter(Boolean).map(Number).filter(n => Number.isInteger(n) && n >= 0 && n < 32);
   const tab = p.get('p');
   return { l: LIVELLI.includes(l) ? l : 'circ', v: v === 'sorted' ? 'sorted' : 'map', z: p.get('z'), c: cam,
-    k: ['uso', 'alt', 'sup'].includes(k) ? k : 'alt', x, g: p.get('g') === '1', s: p.get('s') !== '0', i: p.get('i') === '1',
+    k: ['uso', 'alt', 'sup'].includes(k) ? k : 'alt', x, g: p.get('g') === '1', s: p.get('s') !== '0', i: p.get('i') === '1', o: p.get('o') === '1', a: /^\w{1,30}$/.test(p.get('a') || '') ? p.get('a') : null,
     t: p.get('t') === 'light' || p.get('t') === 'dark' ? p.get('t') : null,
     p: tab && document.querySelector(`.tab-hdr[data-tab="${CSS.escape(tab)}"]`) ? tab : 'zone' };
 }
@@ -285,7 +298,7 @@ function costruisciHash() {
   if (S.vista === 'map' && B) { const m = B.map, ce = m.getCenter(); c = `&c=${m.getZoom().toFixed(2)}/${ce.lat.toFixed(4)}/${ce.lng.toFixed(4)}`; }
   const tab = document.querySelector('.tab-hdr.active'), p = tab && tab.dataset.tab !== 'zone' ? `&p=${tab.dataset.tab}` : '';
   const x = S.spente.size ? `&x=${[...S.spente].sort((a, b) => a - b).join(',')}` : '';
-  return `l=${S.livello}&v=${S.vista}${z}${c}&k=${S.colore}${x}${S.raggruppa ? '&g=1' : ''}${S.lato ? '' : '&s=0'}${S.isola ? '&i=1' : ''}&t=${S.tema}${p}`;
+  return `l=${S.livello}&v=${S.vista}${z}${c}&k=${S.colore}${x}${S.raggruppa ? '&g=1' : ''}${S.lato ? '' : '&s=0'}${S.isola ? '&i=1' : ''}${S.isolati ? '&o=1' : ''}${S.isoFocus !== null ? `&a=${encodeURIComponent(Isolati.lista[S.isoFocus].idag)}` : ''}&t=${S.tema}${p}`;
 }
 function scriviHash() {
   if (!S.citta) return;
@@ -298,6 +311,8 @@ function mostraTip(x, y, cx, cy) {
   if (!S.citta || S.anim) return;
   const zh = R.zonaIn(x, y);
   if ((zh >= 0 ? zh : null) !== S.zonaHover) { S.zonaHover = zh >= 0 ? zh : null; if (S.vista === 'map') R.disegna(); }
+  const ih = R.isolatoIn(x, y);
+  if (ih !== S.isoHover) { S.isoHover = ih; if (S.vista === 'map') R.disegna(); }
   const i = R.hit(x, y);
   if (i === S.hover) { if (i >= 0) postaTip(cx, cy); return; }
   S.hover = i;
@@ -330,20 +345,76 @@ function nascondiTip() {
   if (R) { R.octx.setTransform(1, 0, 0, 1, 0, 0); R.octx.clearRect(0, 0, ov.width, ov.height); }
 }
 
+/* ---------- isolati (aggregati strutturali DPC): livello sulla Mappa + scheda ---------- */
+function apriScheda(k) {
+  const d = Isolati.scheda(k, S.index), box = $('scheda-iso');
+  S.isoSel = k; nascondiTip();
+  $('scheda-iso-titolo').textContent = d.titolo; $('scheda-iso-zona').textContent = d.zona;
+  const dl = $('scheda-iso-dati'); dl.textContent = '';
+  for (const [et, val] of d.righe) { const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = et; dd.textContent = val; dl.append(dt, dd); }
+  const ind = $('scheda-iso-ind'); ind.textContent = d.indirizzi.length ? d.indirizzi.join(' · ') : ''; ind.hidden = !d.indirizzi.length;
+  box.hidden = false; R.disegna();
+}
+function chiudiScheda() {
+  S.isoSel = null; $('scheda-iso').hidden = true;
+  if (R && S.citta) R.disegna();
+}
+/* doppio clic su un isolato: vista Ordinata con il solo blocco dell'isolato; il pannello mostra le sue statistiche */
+async function apriIsolato(k, subito = false) {
+  if (S.anim || S.caricando || !S.citta || !Isolati.pronto() || k < 0) return;
+  try {
+    const m = await Isolati.membri(k, S.livello, S.citta.items.length);
+    if (!m.lista.length) { avvisa('Nessun edificio di questo livello cade nell\'isolato.'); return; }
+    const d = Isolati.scheda(k, S.index);
+    S.isoFocus = k; S.isoSet = m.set; S.isoItems = m.lista; S.isoZona = d.zona;
+    S.isoTitolo = `${d.titolo} · ${NUM.format(m.lista.length)} ${m.lista.length === 1 ? 'edificio' : 'edifici'}`;
+    S.sel = null; S.conf = null; S.evid = null; S.spente.clear(); S.isoHover = -1;
+    chiudiScheda(); nascondiTip();
+    ricalcola(); Cerca.aggiorna(); marcaMini();
+    if (!mobile()) impostaPannello(true);
+    if (subito) { S.vista = 'sorted'; S.lin = S.t = 1; impostaInterazione(); aggiornaUI(); R.disegna(); scriviHash(); }
+    else vaiA('sorted');
+  } catch (err) { console.error(err); avvisa(`Apertura dell'isolato non riuscita (${err.message}).`); }
+}
+/* a fine animazione verso la Mappa: tornano tutti gli edifici e si riapre la scheda dell'isolato */
+function liberaIsolato() {
+  const k = S.isoFocus;
+  S.isoFocus = null; S.isoSet = null; S.isoItems = [];
+  ricalcola(); Cerca.aggiorna(); marcaMini();
+  if (S.isolati && k !== null) apriScheda(k);
+}
+/* accende o spegne il livello; il file (circa 8 MB) si scarica alla prima accensione */
+async function impostaIsolati(on) {
+  const sw = $('isolati');
+  if (!on) { S.isolati = false; S.isoHover = -1; chiudiScheda(); sw.checked = false; scriviHash(); return; }
+  try {
+    if (!Isolati.pronto()) { mostra('Caricamento isolati…'); await Isolati.carica(S.index); nascondi(); }
+    S.isolati = true; sw.checked = true; scriviHash(); R.disegna();
+  } catch (err) {
+    console.error(err); nascondi(); S.isolati = false; sw.checked = false;
+    avvisa(`Caricamento degli isolati non riuscito (${err.message}).`);
+  }
+}
+
 /* ---------- vista Mappa: eventi MapLibre ---------- */
 function collegaMappa() {
   B.suMovimento(() => { if (!S.anim && S.t < 1) R.disegna(); });
   B.map.on('mousemove', ev => { if (S.vista === 'map') mostraTip(ev.point.x, ev.point.y, ev.originalEvent.clientX, ev.originalEvent.clientY); });
-  B.map.on('mouseout', () => { S.zonaHover = null; nascondiTip(); if (S.vista === 'map') R.disegna(); });
+  B.map.on('mouseout', () => { S.zonaHover = null; S.isoHover = -1; nascondiTip(); if (S.vista === 'map') R.disegna(); });
   B.map.on('movestart', nascondiTip);
   B.map.on('moveend', () => { if (!S.anim && S.citta) scriviHash(); });
   B.map.doubleClickZoom.disable();                                             // il doppio click apre la vista Ordinata della zona
   B.map.on('dblclick', ev => {
     if (S.vista !== 'map' || S.anim) return;
-    ev.preventDefault(); apriOrdinata(R.zonaIn(ev.point.x, ev.point.y));
+    ev.preventDefault();
+    const ih = R.isolatoIn(ev.point.x, ev.point.y);
+    if (ih >= 0) apriIsolato(ih); else apriOrdinata(R.zonaIn(ev.point.x, ev.point.y));
   });
   B.map.on('click', ev => {
     if (S.vista !== 'map' || S.anim) return;
+    const ih = R.isolatoIn(ev.point.x, ev.point.y), tocco = ev.originalEvent.pointerType && ev.originalEvent.pointerType !== 'mouse';
+    if (ih >= 0) { if (tocco && doppioTap(ev.point.x, ev.point.y)) apriIsolato(ih); else apriScheda(ih); return; }   // un clic su un isolato apre la sua scheda, il doppio clic la sua vista Ordinata
+    if (S.isoSel !== null) chiudiScheda();
     const zi = R.zonaIn(ev.point.x, ev.point.y);
     const pt = ev.originalEvent.pointerType;
     if (pt && pt !== 'mouse' && doppioTap(ev.point.x, ev.point.y)) { apriOrdinata(zi); return; }
@@ -513,7 +584,7 @@ function aggiornaUI() {
 
 /* X di chiusura: 20 px a destra del blocco selezionato, all'altezza del suo bordo alto; senza selezione resta a destra */
 function posizionaX() {
-  const x = $('torna-mappa'), b = S.sel !== null && S.layout && S.vista === 'sorted' ? S.layout.blocchi[S.sel] : null;
+  const x = $('torna-mappa'), bi = S.isoFocus !== null ? 0 : S.sel, b = bi !== null && S.layout && S.vista === 'sorted' ? S.layout.blocchi[bi] : null;
   if (!b) { x.style.left = x.style.top = ''; x.style.right = ''; return; }
   const v = S.views.sorted, Wd = Math.max(S.W - S.inset, 100);
   const l = Math.min(v.tx + (b.x + b.w) * v.k + 20, Wd - 56), t = Math.min(Math.max(v.ty + b.y * v.k, 12), S.H - S.insetB - 56) + (mobile() ? document.getElementById('cv').offsetTop : 0);
@@ -584,6 +655,8 @@ function collegaInterfaccia() {
   try { S.liveZoom = localStorage.getItem('live-zoom') !== '0'; } catch (_) {}
   $('live-zoom').checked = S.liveZoom;
   $('live-zoom').addEventListener('change', e => { S.liveZoom = e.target.checked; try { localStorage.setItem('live-zoom', S.liveZoom ? '1' : '0'); } catch (_) {} });
+  $('isolati').addEventListener('change', e => impostaIsolati(e.target.checked));
+  $('scheda-iso-chiudi').addEventListener('click', chiudiScheda);
   $('isola').addEventListener('change', e => { S.isola = e.target.checked; scriviHash(); nascondiTip(); R.ricolora(); R.disegna(); if (S.isola && S.sel !== null) seleziona(S.sel); });
   $('filtri-toggle').addEventListener('click', () => { const c = $('filtri').classList.toggle('chiuso'); $('filtri-toggle').setAttribute('aria-expanded', String(!c)); });
   initResizePannello();
@@ -670,5 +743,10 @@ function ridimensiona() {
     if (h.c) applicaCamera(h.c);                                                // camera esplicita nell'hash: prevale sull'inquadratura
     S.vista = h.v; S.lin = S.t = h.v === 'sorted' ? 1 : 0;
     impostaInterazione(); aggiornaUI(); R.disegna(); scriviHash();
+    if (h.o || h.a) {
+      await impostaIsolati(true);
+      const k = h.a ? Isolati.trova(h.a) : -1;
+      if (k >= 0) await apriIsolato(k, true);                                    // link con un isolato: si riapre direttamente la sua vista Ordinata
+    }
   } catch (err) { errore('Errore nel caricamento dei dati: ' + err.message); console.error(err); }
 })();

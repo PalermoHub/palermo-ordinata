@@ -54,6 +54,61 @@
     box.append(g);
   }
 
+  /* ---- isolato in primo piano (S.isoFocus): stesse carte e barre, calcolate sui soli edifici dell'isolato ---- */
+  function datiIso(S) {                                           // conteggi e impronta per classe del colore corrente
+    const it = S.citta.items, k = KEY[S.colore], nc = S.index.classi[S.colore].length, n = Array(nc).fill(0), m2 = Array(nc).fill(0);
+    for (const i of S.isoItems) { const b = it[i]; n[b.cls[k]]++; m2[b.cls[k]] += b.area; }
+    return { n, m2 };
+  }
+
+  function statIso(S, az) {
+    const box = $('stat'); box.textContent = '';
+    const it = S.isoItems.map(i => S.citta.items[i]), n = it.length, imp = it.reduce((a, b) => a + b.area, 0);
+    const hh = it.filter(b => b.cls[1] !== 6).map(b => b.h), hz = mediana(hh.slice()), hmax = hh.length ? Math.max(...hh) : 0;
+    const usi = Array(S.index.classi.uso.length).fill(0); for (const b of it) usi[b.cls[0]]++;
+    const ND = S.index.classi.uso.findIndex(c => c.id === 'ND'), cls = usi.reduce((a, v, i) => i === ND ? a : a + v, 0);
+    let iu = -1; usi.forEach((v, i) => { if (i !== ND && (iu < 0 || v > usi[iu])) iu = i; });
+    const nome = el('div', 'stat-nome'); nome.append(el('span', '', S.isoTitolo));
+    const b = el('button', '', 'Torna alla mappa'); b.type = 'button'; b.title = "Esci dall'isolato e torna alla mappa, centrata su di lui"; b.addEventListener('click', () => az.esciIsolato());
+    nome.append(b); box.append(nome);
+    if (S.isoZona) box.append(el('p', 'stat-card-note', S.isoZona));
+    const g = el('div', 'stat-grid');
+    const carte = [
+      ['Edifici', fmt(n), 'in questo isolato'],
+      ['Impronta a terra', `${fmt(Math.round(imp))} m²`, `${fmt(Math.round(imp / n))} m² per edificio`],
+      ['Mediana', `${fmt(Math.round(mediana(it.map(x => x.area))))} m²`, 'superficie di un edificio'],
+      ['Altezza mediana', hz ? `${f1(hz)} m` : 'n.d.', hh.length < n ? `${fmt(hh.length)} edifici con quota nota` : 'tutti con quota nota'],
+      ['Altezza massima', hmax ? `${f1(hmax)} m` : 'n.d.', 'edificio più alto'],
+      ['Uso prevalente', cls ? S.index.classi.uso[iu].nome : 'n.d.', cls ? `${fmt(cls)} di ${fmt(n)} con un uso registrato` : 'nessun edificio classificato'],
+    ];
+    for (const [t, v, nt] of carte) { const c = el('div', 'stat-card'); c.append(el('p', 'stat-card-title', t), el('p', 'stat-card-val', v), el('p', 'stat-card-note', nt)); g.append(c); }
+    box.append(g);
+  }
+
+  const PRIME_ISO = 8;
+  function grandiIso(S, az) {                                     // al posto delle classifiche tra zone: gli edifici piu' grandi dell'isolato
+    const box = $('classifiche'); box.textContent = '';
+    const C = S.index.classi, righe = S.isoItems.map(i => ({ i, b: S.citta.items[i] })).sort((a, c) => c.b.area - a.b.area);
+    const vis = aperte.has('iso') ? righe : righe.slice(0, PRIME_ISO), max = Math.max(righe[0].b.area, 1);
+    const card = el('section', 'rank-card'); card.append(el('h2', '', 'Edifici più grandi'));
+    const lista = el('div', 'ranking-list');
+    vis.forEach((r, j) => {
+      const riga = el('div', 'rank-row' + (S.evid === r.i ? ' on' : '')), nome = `${C.uso[r.b.cls[0]].nome}${r.b.cls[1] === C.alt.length - 1 ? '' : ` · ${f1(r.b.h)} m`}`;
+      const bt = el('button', 'rank-label', nome); bt.type = 'button'; bt.title = 'Evidenzia questo edificio'; bt.addEventListener('click', () => az.evidenzia(r.i));
+      const tr = el('span', 'rank-track'), f = el('i', 'rank-fill'); f.style.width = (r.b.area / max * 100) + '%'; tr.append(f);
+      riga.append(el('span', 'rank-num', String(j + 1)), bt, tr, el('span', 'rank-value', `${fmt(r.b.area)} m²`), el('span', 'rank-pct', ''));
+      lista.append(riga);
+    });
+    card.append(lista);
+    if (righe.length > PRIME_ISO) {
+      const t = el('button', 'rank-more', aperte.has('iso') ? 'Mostra meno' : `Mostra tutti (${righe.length})`); t.type = 'button';
+      t.title = aperte.has('iso') ? 'Mostra solo i primi edifici' : "Mostra tutti gli edifici dell'isolato";
+      t.addEventListener('click', () => { aperte.has('iso') ? aperte.delete('iso') : aperte.add('iso'); grandiIso(S, az); });
+      card.append(t);
+    }
+    box.append(card);
+  }
+
   const METRICHE = [
     { k: 'n', titolo: 'Edifici', val: z => z.n, fmt: v => fmt(v), quota: true },
     { k: 'footprint_m2', titolo: 'Impronta a terra', val: z => z.footprint_m2, fmt: v => `${f1(v / 1e4)} ha`, quota: true },
@@ -120,6 +175,11 @@
   function quote(S, az) {
     const q = $('quote-body'); q.textContent = '';
     const Z = S.citta.zone, m = S.colore, nomi = S.index.classi[m], col = S.colori[m];
+    if (S.isoFocus !== null) {
+      const d = datiIso(S);
+      q.append(barre(`Isolato: edifici per ${NOME_COL[m]}`, nomi, col, d.n, 'n', S, az), barre(`Isolato: impronta a terra per ${NOME_COL[m]}`, nomi, col, d.m2, 'm2', S, az));
+      return;
+    }
     if (S.conf) {                                                   // confronto: stesse barre per le due zone, sulla stessa scala
       const zs = [Z[S.conf.a], Z[S.conf.b]], att = (v) => v.map((x, i) => S.spente.has(i) ? 0 : x);
       const mx = k => Math.max(...zs.flatMap(z => att(z[m][k])), 1);
@@ -136,7 +196,7 @@
   function legenda(S, az) {
     const L = $('legenda'); L.textContent = '';
     const m = S.colore, nomi = S.index.classi[m], col = S.colori[m];
-    const d = S.sel === null ? somma(S.citta.zone, m) : S.citta.zone[S.sel][m];
+    const d = S.isoFocus !== null ? datiIso(S) : S.sel === null ? somma(S.citta.zone, m) : S.citta.zone[S.sel][m];
     nomi.forEach((c, i) => {
       if (!d.n[i]) return;
       const spenta = S.spente.has(i);
@@ -224,7 +284,9 @@
 
   function aggiorna(S, az) {
     if (!S.citta) return;
-    controlli(S); stat(S, az); confronto(S, az); classifiche(S, az); quote(S, az); legenda(S, az);
+    controlli(S);
+    if (S.isoFocus !== null) { statIso(S, az); $('confronto').textContent = ''; grandiIso(S, az); quote(S, az); legenda(S, az); return; }
+    stat(S, az); confronto(S, az); classifiche(S, az); quote(S, az); legenda(S, az);
   }
   root.Pannello = { aggiorna, controlli };
 })(typeof window !== 'undefined' ? window : globalThis);

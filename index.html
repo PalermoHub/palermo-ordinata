@@ -52,6 +52,13 @@
 <canvas id="cv" role="img" aria-label="Edifici di Palermo"></canvas>
 <canvas id="ov" aria-hidden="true"></canvas>
 <div id="tip" hidden></div>
+<aside id="scheda-iso" hidden aria-label="Scheda dell'isolato">
+  <button id="scheda-iso-chiudi" type="button" aria-label="Chiudi la scheda" title="Chiudi la scheda dell'isolato">×</button>
+  <strong id="scheda-iso-titolo"></strong>
+  <div id="scheda-iso-zona"></div>
+  <dl id="scheda-iso-dati"></dl>
+  <div id="scheda-iso-ind"></div>
+</aside>
 <div id="stato" role="status"><div class="spinner"></div><span>Caricamento…</span><button id="riprova" type="button" hidden title="Riprova a caricare la mappa di base">Riprova</button></div>
 <div id="avviso" role="status" hidden>Mappa di base non raggiungibile: restano visibili gli edifici.</div>
 <a id="logo-osd" href="https://opendatasicilia.it/" target="_blank" rel="noopener" title="Open Data Sicilia"><img src="img/opendatasicilia.png" alt="Open Data Sicilia" width="42" height="48"></a>
@@ -71,6 +78,7 @@
     <label class="chk sw">Raggruppa per classe<input type="checkbox" id="raggruppa" role="switch" autocomplete="off"></label>
     <label class="chk sw">Lato lungo in orizzontale<input type="checkbox" id="lato" role="switch" autocomplete="off" checked></label>
     <label class="chk sw" title="Mostra solo gli edifici e il confine della zona selezionata">Isola zona selezionata<input type="checkbox" id="isola" role="switch" autocomplete="off"></label>
+    <label class="chk sw" title="Mostra sulla mappa il contorno degli isolati (aggregati strutturali del DPC); clic su un isolato per le sue statistiche">Isolati<input type="checkbox" id="isolati" role="switch" autocomplete="off"></label>
     <label class="chk sw" title="Quando nascondi o mostri una classe dalla legenda, la vista si adatta agli edifici rimasti">Live Zoom<input type="checkbox" id="live-zoom" role="switch" autocomplete="off" checked></label>
     <p class="nota nota-dbl"><b>Doppio clic</b> (o doppio tocco) su una zona della mappa: apre la vista sul pannello ordinato.</p>
   </div>
@@ -194,7 +202,14 @@
       <p>Tutte le zone usano la <b>stessa scala</b>: un edificio da 100 m² è grande uguale in ogni blocco. Per questo un blocco più grande contiene più edifici o edifici più grandi, e si confrontano le zone a colpo d'occhio. Ogni blocco è posto vicino alla posizione reale della zona, e il passaggio Mappa ⇄ Ordinata è un'animazione di 1,6 secondi.</p>
       <h2>6. Le statistiche</h2>
       <p>Per ogni zona il pannello conta gli edifici, somma l'impronta a terra e calcola la <b>mediana</b> (il valore a metà della classifica, meno sensibile ai pochi edifici enormi). Le classifiche si ricalcolano sulle sole classi attive nei filtri.</p>
-      <h2>7. Come è fatta</h2>
+      <h2>7. Gli isolati</h2>
+      <ul class="guida">
+        <li>I contorni sono gli <b>aggregati strutturali</b> del Dipartimento della Protezione Civile: gruppi di edifici contigui. Sono un'approssimazione dell'isolato urbano, <b>non sempre delimitato da strade</b>: spesso un aggregato contiene un solo edificio (la mediana è 1).</li>
+        <li>Ogni edificio è assegnato all'aggregato con cui si sovrappone di più; se non si sovrappone a nessuno, a quello più vicino entro 3 m. Restano <b>senza isolato</b> 4.451 edifici (4%), mostrati ma non conteggiati in nessuna scheda.</li>
+        <li>Si mostrano solo gli aggregati con almeno un edificio: 39.545 su 46.852.</li>
+        <li>Le due fonti (edifici e aggregati) non coincidono al metro: i confini di un isolato possono tagliare di poco un edificio.</li>
+      </ul>
+      <h2>8. Come è fatta</h2>
       <p>Una pipeline in Python (geopandas, shapely) prepara i dati e scrive un file per zona. Il browser disegna tutto da zero con MapLibre per la base e Canvas 2D per gli edifici, senza librerie di grafici. Lo stesso algoritmo di disposizione è scritto sia in Python che in JavaScript, così le animazioni video coincidono con la mappa.</p>
       <h2>Cosa tenere presente</h2>
       <ul class="guida">
@@ -279,6 +294,8 @@
         <li><b>Raggruppa per classe</b>: nei blocchi ordinati mette vicini gli edifici dello stesso colore.</li>
         <li><b>Lato lungo in orizzontale</b>: ruota gli edifici per allinearli.</li>
         <li><b>Isola zona selezionata</b>: mostra solo la zona scelta.</li>
+        <li><b>Isolati</b>: disegna sulla mappa il contorno degli isolati. Passa il mouse su uno per evidenziarlo, clicca per aprire la sua scheda (edifici, impronta, altezza mediana, usi, vie). Il contorno di tutti compare ingrandendo la mappa; si usa solo in vista Mappa.</li>
+        <li><b>Doppio clic su un isolato</b> (con «Isolati» acceso): apre la vista Ordinata con il solo blocco di quell'isolato, e il pannello mostra le sue statistiche, le barre per classe e gli edifici più grandi (clic su uno per evidenziarlo). «Torna alla mappa», la X o il tasto <kbd>M</kbd> riportano sulla Mappa, centrata sull'isolato. Il link condiviso conserva l'isolato.</li>
         <li><b>Live Zoom</b>: dopo un filtro la vista si adatta agli edifici rimasti.</li>
       </ul>
       <h2>6. Il pannello dei dati</h2>
@@ -319,6 +336,7 @@
       <h2>Fonti</h2>
       <p>Edifici: «Edifici 3D (edifici unificati)» di <a href="https://palermodigitaltwin.opendatasicilia.it/fonti.html" target="_blank" rel="noopener" title="Apri le fonti di DigitalTwin Palermo">DigitalTwin Palermo</a>, sintesi di tre fonti globali (Overture Maps Foundation, Global Building Atlas, OpenBuildingMap) unite con una pipeline di geoprocessing (2026) e del rilievo volumetrico del Comune di Palermo (2006). Licenza dichiarata dalla fonte: da verificare prima di un uso diverso dalla consultazione.</p>
       <p>Confini: circoscrizioni, quartieri e UPL del Comune di Palermo.</p>
+      <p>Isolati: «Aggregati strutturali» (area ITG Isole, Sicilia, Palermo) del <a href="https://github.com/pcm-dpc/DPC-Aggregati-Strutturali-ITG-Isole" target="_blank" rel="noopener" title="Apri il repository del DPC su GitHub">Dipartimento della Protezione Civile</a>, Presidenza del Consiglio dei Ministri, licenza <a href="https://creativecommons.org/licenses/by/4.0/deed.it" target="_blank" rel="noopener" title="Apri la licenza CC BY 4.0">CC BY 4.0</a>. Contorni semplificati; le statistiche sono calcolate sugli edifici di questa mappa.</p>
       <p>Indirizzi (per la ricerca e per la scheda degli edifici): civici ANNCSU, Archivio nazionale dei numeri civici e delle strade urbane (Agenzia delle Entrate e ISTAT), aggiornamento febbraio 2026. Ogni civico è agganciato all'edificio più vicino (entro 25 m), quindi il risultato è l'edificio più probabile, non sempre quello esatto.</p>
       <p>Idea e metodo: l'idea viene da <a href="https://lnkd.in/p/dDZ9AtBM" target="_blank" rel="noopener" title="Apri il post di Adam Roberts su LinkedIn">un post di Adam Roberts</a> per il #30DayMapChallenge 2026 (giorno 3, Poligoni), «Paris, sorted». Il codice di quel progetto è <a href="https://github.com/abenrob/30daymap2026/tree/main/day-03-polygons" target="_blank" rel="noopener" title="Apri il codice di Adam Roberts su GitHub">pubblico su GitHub</a>. Abbiamo ripreso l'idea e il principio di disposizione; i dati, la pipeline e il codice di questa mappa sono stati rifatti per Palermo.</p>
       <p>Mappa di base: © OpenStreetMap contributors, OpenFreeMap, OpenMapTiles. Satellite: Esri World Imagery.</p>
@@ -352,6 +370,7 @@
 <script src="js/render.js"></script>
 <script src="js/pannello.js"></script>
 <script src="js/indirizzi.js"></script>
+<script src="js/isolati.js"></script>
 <script src="js/cerca.js"></script>
 <script src="js/guida.js"></script>
 <script src="js/app.js"></script>

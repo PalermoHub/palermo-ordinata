@@ -44,9 +44,9 @@
     const colFuoco = zi => S.conf && zi === S.conf.b ? COL_B : stile('--accent');
     function ricolora() {
       const k = KEY[S.colore], ncl = COLORI[S.colore].length, tmp = Array.from({ length: ncl }, () => []);
-      const it = S.citta.items, spente = S.spente, iso = S.isola && inFuoco();
-      VIS = new Uint8Array(n);                                                           // 0 = classe spenta dalla legenda: non si disegna e non risponde al cursore
-      for (let i = 0; i < n; i++) { if (iso && fuori(ZI[i])) continue; const c = it[i].cls[k]; if (spente.has(c)) continue; VIS[i] = 1; tmp[c].push(i); }
+      const it = S.citta.items, spente = S.spente, iso = S.isola && inFuoco(), foc = S.isoFocus !== null ? S.isoSet : null;
+      VIS = new Uint8Array(n);                                                           // 0 = classe spenta dalla legenda (o edificio fuori dall'isolato in primo piano): non si disegna e non risponde al cursore
+      for (let i = 0; i < n; i++) { if (foc && !foc[i]) continue; if (iso && fuori(ZI[i])) continue; const c = it[i].cls[k]; if (spente.has(c)) continue; VIS[i] = 1; tmp[c].push(i); }
       PER = tmp.map(a => Int32Array.from(a));
     }
 
@@ -144,6 +144,8 @@
         ctx.setTransform(M[0] * dpr, M[1] * dpr, M[2] * dpr, M[3] * dpr, M[4] * dpr, M[5] * dpr);
         ctx.fill(Citta.path(it[i]), 'evenodd');
       }
+      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1;
+      if (S.isolati && root.Isolati && root.Isolati.pronto() && e < 0.999) disegnaIsolati(v, 1 - e);
       if (S.evid != null && S.citta.items[S.evid] && VIS[S.evid]) {                        // poligono evidenziato: bordo spesso, scuro sotto e chiaro sopra
         const i = S.evid; matrice(i, e, M);
         const kk = Math.hypot(M[0], M[1]) || 1, P = Citta.path(it[i]);
@@ -154,6 +156,45 @@
       }
       ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1;
       if (e > 0.6 && S.raggruppa) disegnaEtichetteGruppo(vs, (e - 0.6) / 0.4);
+    }
+
+    /* contorni degli isolati: tutti (tratteggio sottile) solo se abbastanza grandi sullo schermo; sempre quello sotto il cursore e quello scelto */
+    function disegnaIsolati(v, alfa) {
+      const dpr = S.dpr, wd = v.world, L = root.Isolati.lista, W = v.W, H = v.H;
+      const pxm = wd / Geo.metriPerUnitaMerc(LAT);                                          // px per metro
+      const traccia = (k) => {
+        for (const r of L[k].anelli) for (let i = 0; i < r.length; i += 2) {
+          const X = ((r[i] - v.cx) * wd + W / 2) * dpr, Y = ((r[i + 1] - v.cy) * wd + H / 2) * dpr;
+          i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y);
+        }
+      };
+      ctx.save(); ctx.globalAlpha = alfa; ctx.lineJoin = 'round';
+      if (pxm >= 0.25) {
+        const x0 = v.cx - W / 2 / wd, x1 = v.cx + W / 2 / wd, y0 = v.cy - H / 2 / wd, y1 = v.cy + H / 2 / wd;
+        ctx.beginPath();
+        for (let k = 0; k < L.length; k++) {
+          const b = L[k].bbox;
+          if (b.x1 < x0 || b.x0 > x1 || b.y1 < y0 || b.y0 > y1) continue;
+          traccia(k); ctx.closePath();
+        }
+        ctx.strokeStyle = stile('--accent'); ctx.globalAlpha = alfa * 0.55; ctx.lineWidth = 1 * dpr; ctx.setLineDash([3 * dpr, 2 * dpr]); ctx.stroke();
+        ctx.setLineDash([]); ctx.globalAlpha = alfa;
+      }
+      for (const [k, spesso] of [[S.isoHover, false], [S.isoSel, true]]) {
+        if (k == null || k < 0 || !L[k]) continue;
+        ctx.beginPath(); traccia(k); ctx.closePath();
+        ctx.fillStyle = 'rgba(245,166,35,.16)'; ctx.fill('evenodd');
+        ctx.strokeStyle = 'rgba(0,0,0,.7)'; ctx.lineWidth = (spesso ? 6 : 5) * dpr; ctx.stroke();
+        ctx.strokeStyle = stile('--accent'); ctx.lineWidth = (spesso ? 3 : 2) * dpr; ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    /* isolato sotto il cursore (x, y in px CSS), solo in vista Mappa */
+    function isolatoIn(x, y) {
+      if (!S.isolati || !root.Isolati || !root.Isolati.pronto() || S.t >= 0.5) return -1;
+      const v = B.vista();
+      return root.Isolati.hit((x - v.W / 2) / v.world + v.cx, (y - v.H / 2) / v.world + v.cy);
     }
 
     function proietta(m) { const v = B.vista(); return [(m[0] - v.cx) * v.world + v.W / 2, (m[1] - v.cy) * v.world + v.H / 2]; }
@@ -197,7 +238,7 @@
         const x = (vs.tx + b.x * k) * dpr, y = (vs.ty + b.y * k) * dpr, w = b.w * k * dpr, h = b.h * k * dpr, sel = evid(zi);
         ctx.strokeStyle = sel ? colFuoco(zi) : stile('--zone-line'); ctx.lineWidth = (sel ? 2.4 : 1) * dpr;
         ctx.strokeRect(x, y, w, h);
-        const z = S.citta.zone[zi], testo = `${z.name} · ${NUM.format(z.n)}`;
+        const z = S.citta.zone[zi], testo = S.isoFocus !== null ? S.isoTitolo : `${z.name} · ${NUM.format(z.n)}`;
         if (w > 40 * dpr && ctx.measureText(testo).width <= w * 1.6) {                    // etichetta solo se non invade i vicini
           ctx.fillStyle = sel ? colFuoco(zi) : stile('--text-dim');
           ctx.fillText(testo, x, y - 4 * dpr);
@@ -258,7 +299,7 @@
 
     /* zona sotto il cursore: poligono (vista Mappa) o blocco (vista Ordinata) */
     function zonaIn(x, y) {
-      if (!S.citta) return -1;
+      if (!S.citta || S.isoFocus !== null) return -1;                                     // con un isolato in primo piano non ci sono zone da scegliere
       const v = B.vista(), vs = S.views.sorted;
       if (S.t < 0.5) {
         const mx = (x - v.W / 2) / v.world + v.cx, my = (y - v.H / 2) / v.world + v.cy;
@@ -276,7 +317,7 @@
       return c;
     }
 
-    return { carica, ricolora, riquadro, disegna, matrice, hit, zonaIn, adattaOrdinata, kMappa, octx, COLORI, KEY, LAT };
+    return { carica, ricolora, riquadro, disegna, matrice, hit, zonaIn, isolatoIn, adattaOrdinata, kMappa, octx, COLORI, KEY, LAT };
   }
   root.Render = { crea, COLORI, KEY };
 })(typeof window !== 'undefined' ? window : globalThis);

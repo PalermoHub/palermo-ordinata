@@ -6,7 +6,6 @@ __pycache__/
 
 # Non pubblicati su PalermoHub/palermo-ordinata
 docs/
-scripts/
 tests/
 dati/
 graphify-out/
@@ -18,3 +17,4 @@ PRODUCT.md
 index - Copia.html
 img/guida/cerca-barra.png
 img/guida/mappa.png
+.superpowers/
