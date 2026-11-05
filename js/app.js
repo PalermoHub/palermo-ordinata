@@ -11,7 +11,7 @@ const NUM = new Intl.NumberFormat('it-IT', { useGrouping: 'always' });
 
 const S = {
   index: null, citta: null, layout: null, livello: 'circ', vista: 'map', colore: 'alt', raggruppa: false, lato: true,
-  sel: null, conf: null, isola: false, isolati: false, lotti: false, lottoSel: null, moran: null, isoHover: -1, isoSel: null, isoFocus: null, isoSet: null, isoItems: [], isoTitolo: '', isoZona: '', spente: new Set(), liveZoom: true, zonaHover: null, views: { sorted: { k: 1, tx: 0, ty: 0 } }, fitOrd: true,
+  sel: null, conf: null, isola: false, isolati: false, lotti: false, lottoSel: null, lottoHover: null, moran: null, isoHover: -1, isoSel: null, isoFocus: null, isoSet: null, isoItems: [], isoTitolo: '', isoZona: '', spente: new Set(), liveZoom: true, zonaHover: null, views: { sorted: { k: 1, tx: 0, ty: 0 } }, fitOrd: true,
   t: 0, lin: 0, anim: false, caricando: false, coda: [], dpr: 1, W: 0, H: 0, inset: 0, pw: 400, insetB: 0, gamma: 0, mediana: 0, tema: 'dark',
   colori: Render.COLORI, hover: -1,
 };
@@ -107,7 +107,7 @@ function vaiA(verso) {
   if (!S.citta) return;
   S.vista = verso; aggiornaUI();
   const target = verso === 'sorted' ? 1 : 0;
-  if (verso === 'sorted') { S.evid = null; chiudiScheda(); S.isoHover = -1; }   // evidenziazione e isolati valgono solo in Mappa
+  if (verso === 'sorted') { S.evid = null; chiudiSchedaLotto(); chiudiScheda(); S.isoHover = -1; }   // evidenziazione e isolati valgono solo in Mappa
   if (S.lin === target) { S.lin = S.t = target; impostaInterazione(); if (target === 0 && S.isoFocus !== null) liberaIsolato(); else R.disegna(); scriviHash(); return; }
   if (verso === 'map' && S.isoFocus !== null) B.vaiA(Isolati.lista[S.isoFocus].bbox, false, S.inset, 19);   // la mappa atterra sull'isolato
   S.anim = true; impostaInterazione(); nascondiTip();
@@ -286,7 +286,7 @@ function leggiHash() {
   const x = (p.get('x') || '').split(',').filter(Boolean).map(Number).filter(n => Number.isInteger(n) && n >= 0 && n < 32);
   const tab = p.get('p');
   return { l: LIVELLI.includes(l) ? l : 'circ', v: v === 'sorted' ? 'sorted' : 'map', z: p.get('z'), c: cam,
-    k: ['uso', 'alt', 'sup'].includes(k) ? k : 'alt', x, g: p.get('g') === '1', s: p.get('s') !== '0', i: p.get('i') === '1', o: p.get('o') === '1', m: ['alt', 'cop', 'den'].includes(p.get('m')) ? p.get('m') : null, a: /^\w{1,30}$/.test(p.get('a') || '') ? p.get('a') : null,
+    k: ['uso', 'alt', 'sup'].includes(k) ? k : 'alt', x, g: p.get('g') === '1', s: p.get('s') !== '0', i: p.get('i') === '1', o: p.get('o') === '1', q: p.get('q') === '1', m: ['alt', 'cop', 'den'].includes(p.get('m')) ? p.get('m') : null, a: /^\w{1,30}$/.test(p.get('a') || '') ? p.get('a') : null,
     t: p.get('t') === 'light' || p.get('t') === 'dark' ? p.get('t') : null,
     p: tab && document.querySelector(`.tab-hdr[data-tab="${CSS.escape(tab)}"]`) ? tab : 'zone' };
 }
@@ -298,7 +298,7 @@ function costruisciHash() {
   if (S.vista === 'map' && B) { const m = B.map, ce = m.getCenter(); c = `&c=${m.getZoom().toFixed(2)}/${ce.lat.toFixed(4)}/${ce.lng.toFixed(4)}`; }
   const tab = document.querySelector('.tab-hdr.active'), p = tab && tab.dataset.tab !== 'zone' ? `&p=${tab.dataset.tab}` : '';
   const x = S.spente.size ? `&x=${[...S.spente].sort((a, b) => a - b).join(',')}` : '';
-  return `l=${S.livello}&v=${S.vista}${z}${c}&k=${S.colore}${x}${S.raggruppa ? '&g=1' : ''}${S.lato ? '' : '&s=0'}${S.isola ? '&i=1' : ''}${S.isolati ? '&o=1' : ''}${S.moran ? `&m=${S.moran}` : ''}${S.isoFocus !== null ? `&a=${encodeURIComponent(Isolati.lista[S.isoFocus].idag)}` : ''}&t=${S.tema}${p}`;
+  return `l=${S.livello}&v=${S.vista}${z}${c}&k=${S.colore}${x}${S.raggruppa ? '&g=1' : ''}${S.lato ? '' : '&s=0'}${S.isola ? '&i=1' : ''}${S.isolati ? '&o=1' : ''}${S.lotti ? '&q=1' : ''}${S.moran ? `&m=${S.moran}` : ''}${S.isoFocus !== null ? `&a=${encodeURIComponent(Isolati.lista[S.isoFocus].idag)}` : ''}&t=${S.tema}${p}`;
 }
 function scriviHash() {
   if (!S.citta) return;
@@ -388,6 +388,7 @@ async function impostaIsolati(on) {
   const sw = $('isolati');
   if (!on) { S.isolati = false; S.isoHover = -1; chiudiScheda(); sw.checked = false; scriviHash(); return; }
   try {
+    if (S.lotti) await impostaLotti(false);
     if (!Isolati.pronto()) { mostra('Caricamento isolati…'); await Isolati.carica(S.index); nascondi(); }
     S.isolati = true; sw.checked = true; scriviHash(); R.disegna();
   } catch (err) {
@@ -396,10 +397,30 @@ async function impostaIsolati(on) {
   }
 }
 
+/* scheda del lotto sotto il clic: dati dei tile (rapporto di copertura approssimato) */
+let lottoProps = null;
+function apriSchedaLotto(k, props) {
+  const d = Lotti.scheda(props), box = $('scheda-lotto');
+  S.lottoSel = k; lottoProps = props; LM.seleziona(k); nascondiTip();
+  $('scheda-lotto-titolo').textContent = d.titolo; $('scheda-lotto-zona').textContent = d.zona;
+  const dl = $('scheda-lotto-dati'); dl.textContent = '';
+  for (const [et, val] of d.righe) { const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = et; dd.textContent = val; dl.append(dt, dd); }
+  const ind = $('scheda-lotto-ind'); ind.textContent = '';
+  for (const a of d.avvisi) { const r = document.createElement('div'); r.className = 'scheda-avviso'; r.textContent = a; ind.append(r); }
+  $('scheda-lotto-apri').hidden = !props.n;
+  box.hidden = false;
+}
+function chiudiSchedaLotto() {
+  if (S.lottoSel === null && $('scheda-lotto').hidden) return;
+  S.lottoSel = null; lottoProps = null; $('scheda-lotto').hidden = true; if (LM) LM.seleziona(null);
+}
+/* doppio clic su un lotto (o «Vedi il lotto»): vista Ordinata del lotto — implementata nel Task 6 */
+async function apriLotto(k, subito = false) { avvisa('La vista del singolo lotto non e\' ancora disponibile.'); }
+
 /* ---------- lotti catastali (particelle): livello vettoriale sulla Mappa ---------- */
 async function impostaLotti(on) {
   const sw = $('lotti'), leg = $('lotti-leg');
-  if (!on) { S.lotti = false; LM.accendi(false); sw.checked = false; leg.hidden = true; document.body.classList.remove('lotti-on'); scriviHash(); return; }
+  if (!on) { S.lotti = false; chiudiSchedaLotto(); LM.accendi(false); sw.checked = false; leg.hidden = true; document.body.classList.remove('lotti-on'); scriviHash(); return; }
   try {
     if (S.moran) await impostaMoran(false);
     if (S.isolati) await impostaIsolati(false);
@@ -450,19 +471,27 @@ async function scegliMoran(v) {
 /* ---------- vista Mappa: eventi MapLibre ---------- */
 function collegaMappa() {
   B.suMovimento(() => { if (!S.anim && S.t < 1) R.disegna(); });
-  B.map.on('mousemove', ev => { if (S.vista === 'map' && !S.moran) mostraTip(ev.point.x, ev.point.y, ev.originalEvent.clientX, ev.originalEvent.clientY); });
-  B.map.on('mouseout', () => { S.zonaHover = null; S.isoHover = -1; nascondiTip(); if (S.vista === 'map') R.disegna(); });
+  B.map.on('mousemove', ev => {
+    if (S.lotti && S.vista === 'map' && !S.anim) { const h = LM.kSotto(ev.point), k = h ? h.k : null; if (k !== S.lottoHover) { S.lottoHover = k; LM.evidenzia(k); B.map.getCanvas().style.cursor = h ? 'pointer' : ''; } }
+    if (S.vista === 'map' && !S.moran) mostraTip(ev.point.x, ev.point.y, ev.originalEvent.clientX, ev.originalEvent.clientY);
+  });
+  B.map.on('mouseout', () => { if (S.lotti) { S.lottoHover = null; LM.evidenzia(null); } S.zonaHover = null; S.isoHover = -1; nascondiTip(); if (S.vista === 'map') R.disegna(); });
   B.map.on('movestart', nascondiTip);
   B.map.on('moveend', () => { if (!S.anim && S.citta) scriviHash(); });
   B.map.doubleClickZoom.disable();                                             // il doppio click apre la vista Ordinata della zona
   B.map.on('dblclick', ev => {
     if (S.vista !== 'map' || S.anim || S.moran) return;
     ev.preventDefault();
+    const lh = S.lotti ? LM.kSotto(ev.point) : null;
+    if (lh) { apriLotto(lh.k); return; }
     const ih = R.isolatoIn(ev.point.x, ev.point.y);
     if (ih >= 0) apriIsolato(ih); else apriOrdinata(R.zonaIn(ev.point.x, ev.point.y));
   });
   B.map.on('click', ev => {
     if (S.vista !== 'map' || S.anim || S.moran) return;
+    const lh = S.lotti ? LM.kSotto(ev.point) : null;
+    if (lh) { if (ev.originalEvent.pointerType && ev.originalEvent.pointerType !== 'mouse' && doppioTap(ev.point.x, ev.point.y)) apriLotto(lh.k); else apriSchedaLotto(lh.k, lh.props); return; }   // clic su un lotto: scheda; doppio clic/tap: vista del lotto
+    if (S.lottoSel !== null) chiudiSchedaLotto();
     const ih = R.isolatoIn(ev.point.x, ev.point.y), tocco = ev.originalEvent.pointerType && ev.originalEvent.pointerType !== 'mouse';
     if (ih >= 0) { if (tocco && doppioTap(ev.point.x, ev.point.y)) apriIsolato(ih); else apriScheda(ih); return; }   // un clic su un isolato apre la sua scheda, il doppio clic la sua vista Ordinata
     if (S.isoSel !== null) chiudiScheda();
@@ -708,6 +737,8 @@ function collegaInterfaccia() {
   $('live-zoom').addEventListener('change', e => { S.liveZoom = e.target.checked; try { localStorage.setItem('live-zoom', S.liveZoom ? '1' : '0'); } catch (_) {} });
   $('isolati').addEventListener('change', e => { if (e.target.checked && S.moran) impostaMoran(false); if (e.target.checked && S.lotti) impostaLotti(false); impostaIsolati(e.target.checked); });
   $('lotti').addEventListener('change', e => impostaLotti(e.target.checked));
+  $('scheda-lotto-chiudi').addEventListener('click', chiudiSchedaLotto);
+  $('scheda-lotto-apri').addEventListener('click', () => { if (S.lottoSel !== null) apriLotto(S.lottoSel); });
   $('moran').addEventListener('change', e => impostaMoran(e.target.checked));
   $('moran-btn').addEventListener('click', () => impostaMoran(!S.moran));
   document.querySelectorAll('#seg-moran button').forEach(b => b.addEventListener('click', () => scegliMoran(b.dataset.m)));
@@ -801,6 +832,7 @@ function ridimensiona() {
     S.vista = h.v; S.lin = S.t = h.v === 'sorted' ? 1 : 0;
     impostaInterazione(); aggiornaUI(); R.disegna(); scriviHash();
     if (h.m) { moranVar = h.m; await impostaMoran(true); if (h.c) applicaCamera(h.c); }
+    else if (h.q) await impostaLotti(true);
     else if (h.o || h.a) {
       await impostaIsolati(true);
       const k = h.a ? Isolati.trova(h.a) : -1;

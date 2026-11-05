@@ -49,16 +49,28 @@ body.side-panel-open #logo-osd{right:calc(var(--pw) + 12px)}
 
 #scheda-iso{position:absolute;right:20px;bottom:72px;z-index:6;width:260px;max-width:calc(100vw - 40px);background:var(--panel);color:var(--text);border:1px solid var(--panel-border);
   border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.45;box-shadow:0 4px 14px var(--shadow)}
+#scheda-lotto{position:absolute;right:20px;bottom:72px;z-index:6;width:260px;max-width:calc(100vw - 40px);background:var(--panel);color:var(--text);border:1px solid var(--panel-border);
+  border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.45;box-shadow:0 4px 14px var(--shadow)}
 #scheda-iso[hidden]{display:none}
+#scheda-lotto[hidden]{display:none}
 body.side-panel-open #scheda-iso{right:calc(var(--pw) + 20px)}
+body.side-panel-open #scheda-lotto{right:calc(var(--pw) + 20px)}
 #scheda-iso strong{display:block;font-size:13px;padding-right:22px}
+#scheda-lotto strong{display:block;font-size:13px;padding-right:22px}
 #scheda-iso-zona{color:var(--text-dim);margin-bottom:6px}
+#scheda-lotto-zona{color:var(--text-dim);margin-bottom:6px}
 #scheda-iso-chiudi{position:absolute;top:4px;right:6px;width:24px;height:24px;border:none;background:none;color:var(--text-dim);font-size:18px;line-height:1;cursor:pointer;border-radius:4px}
+#scheda-lotto-chiudi{position:absolute;top:4px;right:6px;width:24px;height:24px;border:none;background:none;color:var(--text-dim);font-size:18px;line-height:1;cursor:pointer;border-radius:4px}
 #scheda-iso-chiudi:hover{background:var(--hover-bg);color:var(--text)}
+#scheda-lotto-chiudi:hover{background:var(--hover-bg);color:var(--text)}
 #scheda-iso-dati{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin:0}
+#scheda-lotto-dati{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin:0}
 #scheda-iso-dati dt{color:var(--text-dim)}
+#scheda-lotto-dati dt{color:var(--text-dim)}
 #scheda-iso-dati dd{margin:0}
+#scheda-lotto-dati dd{margin:0}
 #scheda-iso-ind{margin-top:6px;padding-top:6px;border-top:1px solid var(--panel-border)}
+#scheda-lotto-ind{margin-top:6px;padding-top:6px;border-top:1px solid var(--panel-border)}
 #avviso{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:8;max-width:min(420px,calc(100vw - 120px));background:var(--panel);color:var(--text);border:1px solid var(--panel-border);border-radius:8px;padding:8px 12px;font-size:12px;box-shadow:0 4px 14px var(--shadow)}
 #avviso[hidden]{display:none}
 #scala{position:absolute;left:20px;bottom:14px;z-index:4;display:flex;gap:8px;align-items:center;color:var(--text-dim);font-size:11px;
@@ -417,3 +429,8 @@ body.lotti-on:not(.vista-ordinata) #cv{opacity:.38}
 #moran-tip strong{display:block;margin-bottom:2px}
 /* con il livello LISA acceso gli edifici e le loro interazioni restano fuori dalla Mappa */
 body.moran-on:not(.vista-ordinata) #cv,body.moran-on:not(.vista-ordinata) #ov,body.moran-on:not(.vista-ordinata) #scala,body.moran-on:not(.vista-ordinata) #tip{visibility:hidden}
+
+#scheda-lotto-apri{margin-top:8px;width:100%;padding:6px 8px;border:1px solid var(--accent);background:none;color:var(--accent);border-radius:6px;font-size:12px;cursor:pointer}
+#scheda-lotto-apri:hover{background:var(--hover-bg)}
+#scheda-lotto-ind:empty{display:none}
+.scheda-avviso{color:var(--accent)}

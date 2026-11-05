@@ -34,6 +34,7 @@
     ];
     const avvisi = [];
     if (p.lib || !p.n) avvisi.push('Lotto libero: nessun edificio sopra.');
+    if (/^STRADA/i.test(String(p.Paricella))) avvisi.push('Particella stradale (strada pubblica), non un lotto edificabile.');
     if (p.cav) avvisi.push('Contiene o confina con edifici a cavallo di più particelle.');
     return { titolo: `Particella ${p.foglio}/${p.Paricella}`, zona: zona || '', righe, avvisi };
   }

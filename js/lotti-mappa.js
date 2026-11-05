@@ -40,7 +40,10 @@
       for (const id of [SEL, HOVER, LINEA, FILL]) if (map.getLayer(id)) map.removeLayer(id);
       if (map.getSource(SORGENTE)) map.removeSource(SORGENTE);
     }
-    map.on('style.load', () => { if (on) installa(); });                 // setStyle (cambio tema) cancella sorgenti e layer
+    /* setStyle (cambio tema) cancella sorgenti e layer; con la diff attiva MapLibre non emette 'style.load', solo 'styledata':
+       si ascoltano entrambi e installa() e' idempotente */
+    const ripristina = () => { if (on && map.isStyleLoaded() && !map.getSource(SORGENTE)) { try { installa(); } catch (e) { console.error(e); } } };
+    map.on('style.load', ripristina); map.on('styledata', ripristina); map.on('idle', ripristina);   // 'idle': dopo la diff lo stile puo' non essere ancora pronto a styledata
 
     function filtro(id, k) { if (map.getLayer(id)) map.setFilter(id, k >= 0 ? ['==', ['get', 'k'], k] : nessuno); }
     return {
