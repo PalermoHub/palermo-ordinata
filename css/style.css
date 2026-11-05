@@ -175,6 +175,11 @@ body.pw-drag #side-panel,body.pw-drag #cerca-bar{transition:none}
 .conf-tab th:first-child{text-align:left;font-weight:400;color:var(--text-dim)}
 .conf-tab tr:first-child th{border-top:none;font-weight:700;color:var(--text);font-size:11px}
 .conf-tab td.max{font-weight:800;color:var(--accent)}
+.conf-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:baseline}
+.conf-dot.a{background:var(--accent-fill)}
+.conf-dot.b{background:#38bdf8}
+.conf-reset{display:block;margin:10px 0 0;background:none;border:1px solid var(--accent-fill);color:var(--accent);border-radius:6px;padding:4px 10px;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.conf-reset:hover{background:rgba(245,166,35,.18)}
 .conf-nota{margin:8px 0 0;font-size:11px;color:var(--text-dim);line-height:1.4}
 .rank-card{border:1px solid var(--panel-border);background:var(--overlay-1);border-radius:8px;padding:10px 12px;margin-bottom:10px}
 .rank-card h2{margin:0 0 8px;font-size:12px}
@@ -185,6 +190,7 @@ body.pw-drag #side-panel,body.pw-drag #cerca-bar{transition:none}
 .rank-label{flex:0 0 128px;width:128px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:none;border:none;padding:0;color:var(--text);text-align:left;font:inherit;cursor:pointer}
 .rank-label:hover{color:var(--accent)}
 .rank-track{flex:1 1 40px;height:6px;background:var(--overlay-2);border-radius:3px;overflow:hidden}
+.rank-fill.b{background:#38bdf8}
 .rank-fill{display:block;height:100%;border-radius:3px;background:var(--accent-fill)}
 .rank-value{flex:none;min-width:56px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
 .rank-pct{flex:none;min-width:38px;text-align:right;color:var(--text-dim);font-variant-numeric:tabular-nums}

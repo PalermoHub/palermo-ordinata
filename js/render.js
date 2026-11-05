@@ -11,6 +11,7 @@
   };
   const KEY = { uso: 0, alt: 1, sup: 2 };
   const NUM = new Intl.NumberFormat('it-IT', { useGrouping: 'always' });
+  const COL_B = '#38bdf8';                                                  // seconda zona del confronto (la prima usa l'accento)
   const LAT = 38.1394, SOGLIA_PX = 10, CELLA_M = 150;
 
   function crea(S, B, cv, ov) {
@@ -36,11 +37,16 @@
       ricolora();
       costruisciGriglie();
     }
+    /* zone in primo piano: le due del confronto (S.conf) oppure la zona selezionata. fuori(zi) = da attenuare/nascondere; colFuoco(zi) = colore del bordo */
+    const inFuoco = () => !!S.conf || S.sel !== null;
+    const fuori = zi => S.conf ? zi !== S.conf.a && zi !== S.conf.b : S.sel !== null && zi !== S.sel;
+    const evid = zi => S.conf ? zi === S.conf.a || zi === S.conf.b : S.sel === zi;
+    const colFuoco = zi => S.conf && zi === S.conf.b ? COL_B : stile('--accent');
     function ricolora() {
       const k = KEY[S.colore], ncl = COLORI[S.colore].length, tmp = Array.from({ length: ncl }, () => []);
-      const it = S.citta.items, spente = S.spente, iso = S.isola && S.sel !== null;
+      const it = S.citta.items, spente = S.spente, iso = S.isola && inFuoco();
       VIS = new Uint8Array(n);                                                           // 0 = classe spenta dalla legenda: non si disegna e non risponde al cursore
-      for (let i = 0; i < n; i++) { if (iso && ZI[i] !== S.sel) continue; const c = it[i].cls[k]; if (spente.has(c)) continue; VIS[i] = 1; tmp[c].push(i); }
+      for (let i = 0; i < n; i++) { if (iso && fuori(ZI[i])) continue; const c = it[i].cls[k]; if (spente.has(c)) continue; VIS[i] = 1; tmp[c].push(i); }
       PER = tmp.map(a => Int32Array.from(a));
     }
 
@@ -48,7 +54,7 @@
     function riquadro(vista) {
       let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
       for (let i = 0; i < n; i++) {
-        if (!VIS[i] || (S.sel !== null && ZI[i] !== S.sel)) continue;
+        if (!VIS[i] || fuori(ZI[i])) continue;
         const hw = vista === 'map' ? 0 : SW[i] / 2, hh = vista === 'map' ? 0 : SH[i] / 2;
         const x = vista === 'map' ? MX[i] : SX[i], y = vista === 'map' ? MY[i] : SY[i];
         if (x - hw < x0) x0 = x - hw; if (x + hw > x1) x1 = x + hw;
@@ -109,7 +115,7 @@
       if (e < 0.999) disegnaConfini(v, 1 - e);
       if (e > 0.001) disegnaBlocchi(vs, e);
 
-      const sel = S.sel, ncl = PER.length, cols = COLORI[S.colore];
+      const sel = inFuoco() ? 1 : null, ncl = PER.length, cols = COLORI[S.colore];
       const grandi = [];
       for (let cl = 0; cl < ncl; cl++) {
         const pa = new Path2D(), pb = new Path2D(), ids = PER[cl];
@@ -121,7 +127,7 @@
           if (w * k < SOGLIA_PX && h * k < SOGLIA_PX) {
             if (x < -60 || y < -60 || x > W + 60 || y > H + 60) continue;                // i piccoli: scarto sul centroide
             const pw = Math.max(w * k, 1.5), ph = Math.max(h * k, 1.5);
-            (sel !== null && ZI[i] !== sel ? pa : pb).rect((x - pw / 2) * dpr, (y - ph / 2) * dpr, pw * dpr, ph * dpr);
+            (sel !== null && fuori(ZI[i]) ? pa : pb).rect((x - pw / 2) * dpr, (y - ph / 2) * dpr, pw * dpr, ph * dpr);
           } else grandi.push(i);
         }
         ctx.fillStyle = cols[cl];
@@ -133,7 +139,7 @@
         matrice(i, e, M);
         const r = Math.hypot(Math.max(OW[i], SW[i]), Math.max(OH[i], SH[i])) * k + 20;   // i grandi: scarto solo se l'intero edificio e' fuori
         if (M[4] < -r || M[5] < -r || M[4] > W + r || M[5] > H + r) continue;
-        ctx.globalAlpha = sel !== null && ZI[i] !== sel ? 0.35 : 1;
+        ctx.globalAlpha = sel !== null && fuori(ZI[i]) ? 0.35 : 1;
         ctx.fillStyle = cols[it[i].cls[KEY[S.colore]]];
         ctx.setTransform(M[0] * dpr, M[1] * dpr, M[2] * dpr, M[3] * dpr, M[4] * dpr, M[5] * dpr);
         ctx.fill(Citta.path(it[i]), 'evenodd');
@@ -155,18 +161,18 @@
     function disegnaConfini(v, alfa) {
       const dpr = S.dpr, wd = v.world;
       ctx.save(); ctx.globalAlpha = alfa; ctx.lineJoin = 'round';
-      const iso = S.isola && S.sel !== null;
+      const iso = S.isola && inFuoco();
       S.citta.zone.forEach((z, zi) => {
-        if (iso && zi !== S.sel) return;
-        const sel = S.sel === zi, hov = S.zonaHover === zi;
+        if (iso && fuori(zi)) return;
+        const sel = evid(zi), hov = S.zonaHover === zi;
         ctx.beginPath();
         for (const r of z.selM) for (let i = 0; i < r.length; i += 2) {
           const X = ((r[i] - v.cx) * wd + v.W / 2) * dpr, Y = ((r[i + 1] - v.cy) * wd + v.H / 2) * dpr;
           i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y);
         }
         ctx.closePath();
-        if (sel || hov) { ctx.fillStyle = sel ? 'rgba(245,166,35,.10)' : 'rgba(255,255,255,.05)'; ctx.fill('evenodd'); }
-        ctx.strokeStyle = sel ? stile('--accent') : stile('--zone-line'); ctx.lineWidth = (sel ? 2.4 : 1.2) * dpr;
+        if (sel || hov) { ctx.fillStyle = sel ? (S.conf && zi === S.conf.b ? 'rgba(56,189,248,.12)' : 'rgba(245,166,35,.10)') : 'rgba(255,255,255,.05)'; ctx.fill('evenodd'); }
+        ctx.strokeStyle = sel ? colFuoco(zi) : stile('--zone-line'); ctx.lineWidth = (sel ? 2.4 : 1.2) * dpr;
         ctx.setLineDash(sel ? [] : [5 * dpr, 4 * dpr]); ctx.stroke();
       });
       ctx.setLineDash([]);
@@ -174,7 +180,7 @@
       ctx.fillStyle = stile('--text'); ctx.font = `600 ${12 * dpr}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.lineWidth = 3 * dpr; ctx.strokeStyle = stile('--bg');
       S.citta.zone.forEach((z, zi) => {
-        if (iso && zi !== S.sel) return;
+        if (iso && fuori(zi)) return;
         const [x, y] = proietta(z.centroM), pw = z.larghM * wd;
         if (pw < 110 || x < -50 || y < -50 || x > v.W + 50 || y > v.H + 50) return;
         ctx.strokeText(z.name, x * dpr, y * dpr); ctx.fillText(z.name, x * dpr, y * dpr);
@@ -187,13 +193,13 @@
       ctx.save(); ctx.globalAlpha = alfa;
       ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.font = `600 ${12 * dpr}px system-ui, sans-serif`;
       S.layout.blocchi.forEach((b, zi) => {
-        if (S.isola && S.sel !== null && zi !== S.sel) return;
-        const x = (vs.tx + b.x * k) * dpr, y = (vs.ty + b.y * k) * dpr, w = b.w * k * dpr, h = b.h * k * dpr, sel = S.sel === zi;
-        ctx.strokeStyle = sel ? stile('--accent') : stile('--zone-line'); ctx.lineWidth = (sel ? 2.4 : 1) * dpr;
+        if (S.isola && inFuoco() && fuori(zi)) return;
+        const x = (vs.tx + b.x * k) * dpr, y = (vs.ty + b.y * k) * dpr, w = b.w * k * dpr, h = b.h * k * dpr, sel = evid(zi);
+        ctx.strokeStyle = sel ? colFuoco(zi) : stile('--zone-line'); ctx.lineWidth = (sel ? 2.4 : 1) * dpr;
         ctx.strokeRect(x, y, w, h);
         const z = S.citta.zone[zi], testo = `${z.name} · ${NUM.format(z.n)}`;
         if (w > 40 * dpr && ctx.measureText(testo).width <= w * 1.6) {                    // etichetta solo se non invade i vicini
-          ctx.fillStyle = sel ? stile('--accent') : stile('--text-dim');
+          ctx.fillStyle = sel ? colFuoco(zi) : stile('--text-dim');
           ctx.fillText(testo, x, y - 4 * dpr);
         }
       });

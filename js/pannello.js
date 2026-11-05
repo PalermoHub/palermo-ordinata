@@ -74,22 +74,22 @@
     const box = $('classifiche'); box.textContent = '';
     const Z = S.citta.zone, F = perZona(S);
     for (const m of METRICHE) {
-      const righe = Z.map((z, i) => ({ z, i, v: m.val(F ? F[i] : z) })).sort((a, b) => b.v - a.v);
+      const righe = Z.map((z, i) => ({ z, i, v: m.val(F ? F[i] : z) })).filter(r => !S.conf || r.i === S.conf.a || r.i === S.conf.b).sort((a, b) => b.v - a.v);   // con il confronto attivo: solo le due zone
       const max = righe.length ? Math.max(righe[0].v, 1) : 1, tot = righe.reduce((a, r) => a + r.v, 0) || 1;
       let vis = aperte.has(m.k) ? righe : righe.slice(0, PRIME);
       const sel = righe.findIndex(r => r.i === S.sel);            // la zona selezionata resta sempre visibile
       if (sel >= vis.length) vis = vis.concat(righe[sel]);
-      const card = el('section', 'rank-card'); card.append(el('h2', '', m.titolo));
+      const card = el('section', 'rank-card'); card.append(el('h2', '', S.conf ? `${m.titolo} · confronto` : m.titolo));
       const lista = el('div', 'ranking-list');
       for (const r of vis) {
         const riga = el('div', 'rank-row' + (S.sel === r.i ? ' on' : '')), b = el('button', 'rank-label', r.z.name);
         b.type = 'button'; b.title = r.z.name; b.addEventListener('click', () => az.seleziona(r.i));
-        const tr = el('span', 'rank-track'), f = el('i', 'rank-fill'); f.style.width = (r.v / max * 100) + '%'; tr.append(f);
+        const tr = el('span', 'rank-track'), f = el('i', 'rank-fill' + (S.conf && r.i === S.conf.b ? ' b' : '')); f.style.width = (r.v / max * 100) + '%'; tr.append(f);
         riga.append(el('span', 'rank-num', String(righe.indexOf(r) + 1)), b, tr, el('span', 'rank-value', m.fmt(r.v)), el('span', 'rank-pct', m.quota ? `${f1(r.v / tot * 100)}%` : ''));
         lista.append(riga);
       }
       card.append(lista);
-      if (righe.length > PRIME) {
+      if (righe.length > PRIME && !S.conf) {
         const t = el('button', 'rank-more', aperte.has(m.k) ? 'Mostra meno' : `Mostra tutte (${righe.length})`); t.type = 'button';
         t.addEventListener('click', () => { aperte.has(m.k) ? aperte.delete(m.k) : aperte.add(m.k); classifiche(S, az); });
         card.append(t);
@@ -98,11 +98,11 @@
     }
   }
 
-  function barre(titolo, nomi, col, dati, unita, S, az) {
+  function barre(titolo, nomi, col, dati, unita, S, az, comune) {
     const sec = document.createDocumentFragment();
     sec.append(el('h2', '', titolo));
     const att = dati.map((v, i) => S.spente.has(i) ? 0 : v);      // scala e percentuali solo sulle classi attive
-    const g = el('div', 'barre'), max = Math.max(...att, 1), tot = att.reduce((a, b) => a + b, 0) || 1;
+    const g = el('div', 'barre'), max = Math.max(...att, 1, comune || 0), tot = att.reduce((a, b) => a + b, 0) || 1;
     nomi.forEach((c, i) => {
       if (!dati[i]) return;
       const spenta = S.spente.has(i);
@@ -120,6 +120,14 @@
   function quote(S, az) {
     const q = $('quote-body'); q.textContent = '';
     const Z = S.citta.zone, m = S.colore, nomi = S.index.classi[m], col = S.colori[m];
+    if (S.conf) {                                                   // confronto: stesse barre per le due zone, sulla stessa scala
+      const zs = [Z[S.conf.a], Z[S.conf.b]], att = (v) => v.map((x, i) => S.spente.has(i) ? 0 : x);
+      const mx = k => Math.max(...zs.flatMap(z => att(z[m][k])), 1);
+      const mn = mx('n'), mm = mx('m2');
+      for (const z of zs) q.append(barre(`${z.name}: edifici per ${NOME_COL[m]}`, nomi, col, z[m].n, 'n', S, az, mn),
+                                    barre(`${z.name}: impronta a terra per ${NOME_COL[m]}`, nomi, col, z[m].m2, 'm2', S, az, mm));
+      return;
+    }
     const d = S.sel === null ? somma(Z, m) : Z[S.sel][m], nome = S.sel === null ? 'Tutta Palermo' : Z[S.sel].name;
     q.append(barre(`${nome}: edifici per ${NOME_COL[m]}`, nomi, col, d.n, 'n', S, az),
              barre(`${nome}: impronta a terra per ${NOME_COL[m]}`, nomi, col, d.m2, 'm2', S, az));
@@ -166,21 +174,27 @@
     { t: 'Densità', v: m => m.dens, f: v => `${fmt(Math.round(v))} /km²` },
   ];
 
-  function confronto(S) {
+  function confronto(S, az) {
     const box = $('confronto'); if (!box) return;
     box.textContent = '';
     const Z = S.citta.zone;
-    if (conf.liv !== S.livello) { conf.liv = S.livello; conf.a = null; conf.b = null; }
+    if (conf.liv !== S.livello) { conf.liv = S.livello; conf.a = null; conf.b = null; conf.aperto = false; }
+    if (conf.aperto && !S.conf) conf.aperto = false;                  // la mappa ha chiuso il confronto (cambio livello)
     if (conf.a === null) conf.a = S.sel !== null ? S.sel : 0;
     if (conf.b === null || conf.b === conf.a) conf.b = Z.findIndex((_, i) => i !== conf.a);
     const det = el('details', 'conf'); det.open = conf.aperto;
-    det.addEventListener('toggle', () => { conf.aperto = det.open; });
+    const applica = () => az.confronta(conf.a, conf.b);
+    det.addEventListener('toggle', () => {
+      if (det.open === conf.aperto) return;                           // apertura programmatica del ridisegno: niente da fare
+      conf.aperto = det.open;
+      if (det.open) applica(); else az.confronta(null);
+    });
     det.append(el('summary', '', 'Confronta due zone'));
     const sel = (chiave) => {
       const s = el('select'); s.setAttribute('aria-label', chiave === 'a' ? 'Prima zona' : 'Seconda zona');
       const ord = Z.map((z, i) => ({ z, i })).sort((x, y) => x.z.name.localeCompare(y.z.name, 'it'));
       for (const { z, i } of ord) { const o = el('option', '', z.name); o.value = String(i); if (conf[chiave] === i) o.selected = true; s.append(o); }
-      s.addEventListener('change', () => { conf[chiave] = +s.value; tabella(); });
+      s.addEventListener('change', () => { conf[chiave] = +s.value; tabella(); if (conf.aperto) applica(); });
       return s;
     };
     const scelte = el('div', 'conf-sel'); scelte.append(sel('a'), el('span', '', 'vs'), sel('b'));
@@ -192,7 +206,8 @@
       tab.textContent = '';
       const ma = metricheZona(S, conf.a), mb = metricheZona(S, conf.b);
       const t = el('table'), th = el('tr');
-      th.append(el('th'), el('th', '', Z[conf.a].name), el('th', '', Z[conf.b].name)); t.append(th);
+      const intest = (i, cl) => { const h = el('th'); h.append(el('i', 'conf-dot ' + cl), Z[i].name); return h; };
+      th.append(el('th'), intest(conf.a, 'a'), intest(conf.b, 'b')); t.append(th);
       for (const r of RIGHE_CONF) {
         const va = r.v(ma), vb = r.v(mb), tr = el('tr');
         const ca = el('td', va > vb ? 'max' : '', r.f(va)), cb = el('td', vb > va ? 'max' : '', r.f(vb));
@@ -201,12 +216,15 @@
       tab.append(t);
     }
     tabella();
-    det.append(scelte, tab, nota); box.append(det);
+    const rip = el('button', 'conf-reset', 'Azzera confronto'); rip.type = 'button';
+    rip.title = 'Chiude il confronto e torna alla mappa intera';
+    rip.addEventListener('click', () => { conf.aperto = false; conf.a = null; conf.b = null; az.confronta(null); confronto(S, az); });
+    det.append(scelte, tab, nota, rip); box.append(det);
   }
 
   function aggiorna(S, az) {
     if (!S.citta) return;
-    controlli(S); stat(S, az); confronto(S); classifiche(S, az); quote(S, az); legenda(S, az);
+    controlli(S); stat(S, az); confronto(S, az); classifiche(S, az); quote(S, az); legenda(S, az);
   }
   root.Pannello = { aggiorna, controlli };
 })(typeof window !== 'undefined' ? window : globalThis);

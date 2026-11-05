@@ -11,7 +11,7 @@ const NUM = new Intl.NumberFormat('it-IT', { useGrouping: 'always' });
 
 const S = {
   index: null, citta: null, layout: null, livello: 'upl', vista: 'map', colore: 'alt', raggruppa: false, lato: true,
-  sel: null, isola: false, spente: new Set(), liveZoom: true, zonaHover: null, views: { sorted: { k: 1, tx: 0, ty: 0 } }, fitOrd: true,
+  sel: null, conf: null, isola: false, spente: new Set(), liveZoom: true, zonaHover: null, views: { sorted: { k: 1, tx: 0, ty: 0 } }, fitOrd: true,
   t: 0, lin: 0, anim: false, caricando: false, coda: [], dpr: 1, W: 0, H: 0, inset: 0, pw: 400, insetB: 0, gamma: 0, mediana: 0, tema: 'dark',
   colori: Render.COLORI, hover: -1,
 };
@@ -44,7 +44,7 @@ async function caricaLivello(liv) {
   const prec = S.citta, precSel = S.sel;
   try {
     mostra('Caricamento…');
-    S.citta = null; S.sel = null; S.zonaHover = null; nascondiTip();
+    S.citta = null; S.sel = null; S.conf = null; S.zonaHover = null; nascondiTip();
     const c = await Citta.carica(liv, S.index);
     preparaZone(c);
     S.citta = c; S.livello = liv;
@@ -148,6 +148,13 @@ function seleziona(zi, zoom = true) {
   }
   R.disegna();
 }
+/* confronto di due zone: le porta in primo piano in mappa (a, b = indici zona; a === null = esce dal confronto) e inquadra entrambe */
+function confronta(a, b) {
+  if (!S.citta) return;
+  S.conf = a === null ? null : { a, b };
+  R.ricolora(); nascondiTip(); Pannello.aggiorna(S, azioni); R.disegna();
+  if (!S.anim) inquadraVisibili();
+}
 /* ---------- filtro per classe dalla legenda + Live Zoom ---------- */
 function inquadraVisibili() {
   if (!S.citta || S.anim) return;
@@ -206,7 +213,7 @@ function apriOrdinata(zi) {
   if (S.vista === 'sorted') { fine(); return; }
   vaiA('sorted'); S.coda.push(fine); svuotaCoda();
 }
-const azioni = { seleziona: (zi, z) => { if (mobile() && pannelloAperto()) impostaPannello(false); seleziona(zi, z); }, filtra, solo: soloClasse, azzera: azzeraFiltro, vaiAZona, vaiAEdificio, reset: resetTutto };
+const azioni = { seleziona: (zi, z) => { if (mobile() && pannelloAperto()) impostaPannello(false); seleziona(zi, z); }, filtra, confronta, solo: soloClasse, azzera: azzeraFiltro, vaiAZona, vaiAEdificio, reset: resetTutto };
 
 /* ---------- mini-mappa ---------- */
 function minimappa() {
