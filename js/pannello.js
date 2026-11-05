@@ -201,8 +201,10 @@
       if (!d.n[i]) return;
       const spenta = S.spente.has(i);
       const r = el('button', 'row' + (spenta ? ' off' : '')), sw = el('i'); sw.style.background = col[i];
-      r.type = 'button'; r.setAttribute('aria-pressed', String(!spenta)); r.title = spenta ? 'Mostra questa classe' : 'Nascondi questa classe';
-      r.addEventListener('click', () => az.filtra(i));
+      const sola = !spenta && S.spente.size === nomi.length - 1;     // logica inversa: il click isola la classe, secondo click = tutte
+      r.type = 'button'; r.setAttribute('aria-pressed', String(!spenta));
+      r.title = sola ? 'Mostra tutte le classi (Maiusc+click: nascondi solo questa)' : 'Mostra solo questa classe (Maiusc+click: accendi/spegni senza isolare)';
+      r.addEventListener('click', e => (e.shiftKey || e.ctrlKey || e.metaKey) ? az.filtra(i) : az.solo(i));
       r.append(sw, el('span', '', c.nome), el('b', '', fmt(d.n[i]))); L.append(r);
     });
     if (S.spente.size) {
@@ -261,7 +263,7 @@
     const tab = el('div', 'conf-tab');
     const nota = el('p', 'conf-nota');
     const k = S.colore, nomi = S.index.classi[k];
-    nota.textContent = S.spente.size ? `Solo le classi attive di ${NOME_COL[k]}: ${nomi.length - S.spente.size} su ${nomi.length}.` : `Tutte le classi di ${NOME_COL[k]}. Spegni classi nella legenda per confrontare una categoria.`;
+    nota.textContent = S.spente.size ? `Solo le classi attive di ${NOME_COL[k]}: ${nomi.length - S.spente.size} su ${nomi.length}.` : `Tutte le classi di ${NOME_COL[k]}. Clicca una classe nella legenda per isolarla e confrontare una categoria.`;
     function tabella() {
       tab.textContent = '';
       const ma = metricheZona(S, conf.a), mb = metricheZona(S, conf.b);
