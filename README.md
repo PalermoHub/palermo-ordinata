@@ -102,3 +102,9 @@ Esempio: [`img/anim/upl-tribunali-o-kalsa.gif`](img/anim/upl-tribunali-o-kalsa.g
 ## Da fare
 
 Pubblicazione (dopo aver chiarito la licenza dei dati) e altre animazioni; vedi [`docs/DA_FARE.md`](docs/DA_FARE.md).
+
+## Licenza
+
+- **Codice** (`index.html`, `css/`, `js/`): [MIT](LICENSE). L'idea e il metodo derivano da [day-03-polygons](https://github.com/abenrob/30daymap2026/tree/main/day-03-polygons) di Adam Roberts, che ha autorizzato l'adattamento a Palermo; il repository originale non indica una licenza.
+- **Dati** (`data/`): sintesi degli edifici di [DigitalTwin Palermo](https://palermodigitaltwin.opendatasicilia.it/fonti.html) da Overture Maps, Global Building Atlas, OpenBuildingMap e rilievo CTC 2006 (CC BY 4.0). La licenza della sintesi è ancora da verificare: finché non è confermata, valgono le condizioni delle fonti (alcune, come OpenStreetMap/ODbL, impongono attribuzione e condivisione allo stesso modo). Confini: ISTAT/Comune di Palermo.
+- **Base cartografica**: © OpenStreetMap contributors, tramite OpenFreeMap.
