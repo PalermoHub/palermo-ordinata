@@ -23,7 +23,7 @@
     /* ricostruisce gli array tipizzati da S.citta e S.layout (dopo caricamento, layout, lato, colore) */
     function carica() {
       const it = S.citta.items; n = it.length;
-      const reale = S.isoFocus !== null && S.isoTipo === 'lotto';                         // nel lotto gli edifici restano nella posizione e nell'orientamento reali
+      const reale = !!(S.layout && S.layout.reale);                                       // nel lotto e nella vista Ordinata dei lotti gli edifici restano nella posizione e nell'orientamento reali
       MX = new Float64Array(n); MY = new Float64Array(n); SX = new Float64Array(n); SY = new Float64Array(n);
       OW = new Float32Array(n); OH = new Float32Array(n); SW = new Float32Array(n); SH = new Float32Array(n);
       SCX = new Float32Array(n); SCY = new Float32Array(n); ANG1 = new Float32Array(n); ZI = new Int16Array(n);
@@ -50,6 +50,7 @@
       VIS = new Uint8Array(n);                                                           // 0 = classe spenta dalla legenda (o edificio fuori dall'isolato in primo piano): non si disegna e non risponde al cursore
       for (let i = 0; i < n; i++) { if (foc && !foc[i]) continue; if (iso && fuori(ZI[i])) continue; const c = it[i].cls[k]; if (spente.has(c) || (lotOff && root.Lotti.nascosto(it[i], lotOff))) continue; VIS[i] = 1; tmp[c].push(i); }
       PER = tmp.map(a => Int32Array.from(a));
+      if (S.layout && S.layout.lotti) for (const c of S.layout.lotti) c.vis = c.ids.some(i => VIS[i]);     // il contorno di un lotto resta solo se ha edifici visibili
     }
 
     /* riquadro degli edifici visibili (della zona selezionata, se c'e'): Mercator in vista Mappa, dm del layout in Ordinata; null se non resta nulla */
@@ -117,6 +118,7 @@
       if (e < 0.999) disegnaConfini(v, 1 - e);
       if (e > 0.001) disegnaBlocchi(vs, e);
       if (e > 0.001 && S.isoFocus !== null && S.isoTipo === 'lotto' && S.lottoAnelli) disegnaLotto(vs, e);
+      else if (e > 0.001 && S.layout.lotti) disegnaLottiOrd(vs, e, v);
 
       const soloLotti = S.lotti && S.edifici === false && e < 0.001;                      // interruttore «Edifici sui lotti» spento (solo Mappa)
       const sel = inFuoco() ? 1 : null, ncl = PER.length, cols = COLORI[S.colore];
@@ -242,7 +244,7 @@
         const x = (vs.tx + b.x * k) * dpr, y = (vs.ty + b.y * k) * dpr, w = b.w * k * dpr, h = b.h * k * dpr, sel = evid(zi);
         ctx.strokeStyle = sel ? colFuoco(zi) : stile('--zone-line'); ctx.lineWidth = (sel ? 2.4 : 1) * dpr;
         ctx.strokeRect(x, y, w, h);
-        const z = S.citta.zone[zi], testo = S.isoFocus !== null ? S.isoTitolo : `${z.name} · ${NUM.format(z.n)}`;
+        const z = S.citta.zone[zi], testo = S.isoFocus !== null ? S.isoTitolo : (b.testo || `${z.name} · ${NUM.format(z.n)}`);
         if (w > 40 * dpr && ctx.measureText(testo).width <= w * 1.6) {                    // etichetta solo se non invade i vicini
           ctx.fillStyle = sel ? colFuoco(zi) : stile('--text-dim');
           ctx.fillText(testo, x, y - 4 * dpr);
@@ -262,6 +264,23 @@
       }
       ctx.fillStyle = 'rgba(245,166,35,.10)'; ctx.fill('evenodd');
       ctx.strokeStyle = stile('--accent'); ctx.lineWidth = 2.2 * dpr; ctx.stroke();
+      ctx.restore();
+    }
+
+    /* contorni dei lotti nella vista Ordinata dei lotti: tutti in un solo tracciato, solo quelli nel riquadro visibile e abbastanza grandi */
+    function disegnaLottiOrd(vs, alfa, v) {
+      const dpr = S.dpr, k = vs.k, x0 = -vs.tx / k, y0 = -vs.ty / k, x1 = (v.W - vs.tx) / k, y1 = (v.H - vs.ty) / k;
+      const p = new Path2D();
+      for (const c of S.layout.lotti) {
+        if (!c.vis || !c.anelli.length || c.x > x1 || c.x + c.w < x0 || c.y > y1 || c.y + c.h < y0 || (c.w * k < 5 && c.h * k < 5)) continue;
+        for (const a of c.anelli) {
+          for (let i = 0; i < a.length; i += 2) { const X = (vs.tx + a[i] * k) * dpr, Y = (vs.ty + a[i + 1] * k) * dpr; i ? p.lineTo(X, Y) : p.moveTo(X, Y); }
+          p.closePath();
+        }
+      }
+      ctx.save(); ctx.globalAlpha = alfa; ctx.lineJoin = 'round';
+      ctx.fillStyle = 'rgba(245,166,35,.08)'; ctx.fill(p, 'evenodd');
+      ctx.strokeStyle = stile('--accent'); ctx.globalAlpha = alfa * 0.7; ctx.lineWidth = 1.2 * dpr; ctx.stroke(p);
       ctx.restore();
     }
 

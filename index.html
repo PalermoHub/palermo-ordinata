@@ -84,6 +84,7 @@
     <div id="legenda"></div>
     <hr class="panel-sep">
     <label class="chk sw">Raggruppa per classe<input type="checkbox" id="raggruppa" role="switch" autocomplete="off"></label>
+    <label class="chk sw" title="Nella vista Ordinata dispone i lotti catastali in file per superficie, ognuno con il contorno della particella e i suoi edifici dentro, alla stessa scala">Ordina per lotti<input type="checkbox" id="ord-lotti" role="switch" autocomplete="off"></label>
     <label class="chk sw">Lato lungo in orizzontale<input type="checkbox" id="lato" role="switch" autocomplete="off" checked></label>
     <label class="chk sw" title="Mostra solo gli edifici e il confine della zona selezionata">Isola zona selezionata<input type="checkbox" id="isola" role="switch" autocomplete="off"></label>
     <label class="chk sw" title="Mostra sulla mappa il contorno degli isolati (aggregati strutturali del DPC); clic su un isolato per le sue statistiche">Isolati<input type="checkbox" id="isolati" role="switch" autocomplete="off"></label>
@@ -251,6 +252,7 @@
         <li><b>Edifici a cavallo:</b> 41.740 edifici (37%) contano in più di una particella. Il catasto frammenta molto più della banca dati degli edifici: la scheda lo segnala e scrive «n (+m a cavallo)». Il colore del lotto tiene conto di tutti gli edifici che ci contano; la vista del lotto mostra solo quelli per cui è il lotto principale.</li>
         <li><b>Lotti senza edifici:</b> 60.665 particelle su 135.038 (nessun edificio ci conta per almeno il 10%); 74.373 ne hanno almeno uno. Non sono tutte «aree libere»: 4.105 particelle sono stradali (<i>STRADA…</i>, 2.465 tra i «senza edifici») e molte altre sono campagna, aree verdi o pertinenze dove la banca dati degli edifici non ha poligoni. I lotti che sono il lotto principale di almeno un edificio sono 54.888, con mediana 407 m².</li>
         <li><b>Approssimazioni:</b> gli edifici vengono dalla CTC 2006 e dalla banca dati globale, il catasto è di settembre 2026: le due fonti non coincidono al metro, un edificio nuovo o demolito falsa il rapporto del suo lotto. 212 edifici non cadono in nessuna particella.</li>
+        <li><b>Vista «Ordina per lotti»:</b> entrano i 54.888 lotti che sono il lotto principale di almeno un edificio (gli unici di cui si esporta il contorno) e i 212 edifici senza particella come elementi singoli; i lotti senza edifici restano solo sulla Mappa. L'ordine è per superficie del lotto; lo spazio riservato a ogni lotto è il riquadro che contiene il contorno e gli edifici che eventualmente sporgono. Gli edifici non sono ruotati.</li>
         <li>Il livello si legge dal file <code>data/lotti.pmtiles</code> (tile vettoriali, ricalcolati da <code>scripts/09_lotti.py</code>); i contorni per la vista del lotto stanno in <code>data/lotti/</code>, un file per UPL, scaricati solo quando servono.</li>
       </ul>
       <h2>10. Come è fatta</h2>
@@ -407,6 +409,12 @@
         <li><b>Doppio clic su un lotto</b> (o doppio tocco, o «Vedi il lotto con i suoi edifici» nella scheda): apre la vista Ordinata del solo lotto. Qui gli edifici <b>non sono in fila</b>: restano dove sono, dentro il contorno della particella, alla stessa scala.</li>
         <li>Il pannello mostra le statistiche degli edifici del lotto; «<b>Torna alla mappa</b>», la X o il tasto <kbd>M</kbd> riportano sulla Mappa, centrata sul lotto.</li>
         <li>Il <b>link condiviso</b> conserva il livello acceso (<code>&amp;q=1</code>) e il lotto aperto (<code>&amp;lot=…</code>). Fonte e approssimazioni sono nella Metodologia, punto 9.</li>
+      </ul>
+      <figure><button type="button" class="gal" data-gal="img/guida/lotti-ordinati.png" data-cap="Ordina per lotti: i lotti di una zona in ordine di superficie, ognuno con il contorno della particella e i suoi edifici dentro" title="Ingrandisci: Ordina per lotti: i lotti di una zona in ordine di superficie, ognuno con il contorno della particella e i suoi edifici dentro"><img src="img/guida/lotti-ordinati.png" alt="La vista Ordinata con i lotti di una zona in fila, ognuno con il suo contorno e gli edifici dentro" loading="lazy"></button><figcaption>Ordina per lotti: i lotti di una zona in ordine di superficie, ognuno con il contorno della particella e i suoi edifici dentro</figcaption></figure>
+      <ul class="guida">
+        <li><b>Ordina per lotti</b> (interruttore nella legenda): la vista Ordinata mostra, zona per zona, <b>i lotti</b> dal più grande al più piccolo invece degli edifici. Ogni lotto ha il contorno della particella e i suoi edifici nelle posizioni reali, tutto <b>alla stessa scala</b>: si vede subito quanto è costruito e quanto è libero. Gli edifici senza particella compaiono come elementi singoli, senza contorno.</li>
+        <li>I filtri e i colori della legenda valgono anche qui: un lotto resta disegnato solo se ha almeno un edificio visibile. «Raggruppa per classe» non si applica a questa vista.</li>
+        <li>Il link conserva la scelta (<code>&amp;ol=1</code>).</li>
       </ul>
       <h2>11. Il menu delle viste</h2>
       <figure><button type="button" class="gal" data-gal="img/guida/dial.png" data-cap="Il menu rotondo arancione, in alto a sinistra" title="Ingrandisci: Il menu rotondo arancione, in alto a sinistra"><img src="img/guida/dial.png" alt="Il menu delle viste aperto" loading="lazy"></button><figcaption>Il menu rotondo arancione, in alto a sinistra</figcaption></figure>

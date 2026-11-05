@@ -103,23 +103,90 @@
     } else citta.items.forEach(b => { b.cls[3] = SENZA_LOTTO; });
   }
 
+  /* ---------- vista Ordinata dei lotti ----------
+     items: edifici del livello (z, X, Y, ocx, ocy, ow, oh, area); lotto: Int32Array (lotto principale di ogni edificio o -1);
+     anelliDi(k) -> {m2, anelli:[Float64Array in dm, y nord]} | null. Ritorna, per zona, i gruppi da disporre:
+     {k, ids, anelli, x0, y1, bw, bh, area}: un lotto con i suoi edifici, oppure (k = -1) un edificio senza lotto. (x0, y1) = angolo
+     nord-ovest del riquadro, in dm come X, Y; bw, bh = dimensioni del riquadro (contorno + edifici, non ruotati). */
+  function gruppi(items, lotto, anelliDi, nZone) {
+    const perZona = Array.from({ length: nZone }, () => []), perLotto = new Map();
+    items.forEach((b, i) => {
+      const k = lotto[i];
+      const g = k >= 0 ? anelliDi(k) : null;
+      if (!g) { perZona[b.z].push(crea(-1, [i], [], b.area, items)); return; }
+      if (!perLotto.has(k)) { const gr = crea(k, [], g.anelli, g.m2, items); perLotto.set(k, gr); perZona[b.z].push(gr); }
+      perLotto.get(k).ids.push(i);
+    });
+    for (const gr of perLotto.values()) riquadro(gr, items);
+    for (const z of perZona) for (const gr of z) if (gr.k < 0) riquadro(gr, items);
+    return perZona;
+  }
+  const crea = (k, ids, anelli, area) => ({ k, ids, anelli, area, x0: 0, y1: 0, bw: 0, bh: 0 });
+  function riquadro(gr, items) {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    const allarga = (x, y) => { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; };
+    for (const a of gr.anelli) for (let i = 0; i < a.length; i += 2) allarga(a[i], a[i + 1]);
+    for (const i of gr.ids) { const b = items[i], cx = b.X + b.ocx, cy = b.Y - b.ocy; allarga(cx - b.ow / 2, cy - b.oh / 2); allarga(cx + b.ow / 2, cy + b.oh / 2); }
+    gr.x0 = x0; gr.y1 = y1; gr.bw = Math.max(x1 - x0, 1); gr.bh = Math.max(y1 - y0, 1);
+  }
+
+  /* gruppiPiatti: elenco piatto dei gruppi; items: gli edifici del livello; centri: Float64Array(2 * gruppi) = centro dello slot di ogni gruppo (blocco, y verso il basso);
+     ritorna {pos: centri slot degli edifici (posizione REALE rispetto al contorno), contorni: [{k, g, x, y, w, h, anelli}]} */
+  function posiziona(gruppiPiatti, centri, nItems, items) {
+    const pos = new Float64Array(2 * nItems), contorni = [];
+    gruppiPiatti.forEach((gr, g) => {
+      const sx = centri[2 * g] - gr.bw / 2, sy = centri[2 * g + 1] - gr.bh / 2;     // angolo nord-ovest dello slot
+      for (const i of gr.ids) { const b = items[i]; pos[2 * i] = sx + (b.X + b.ocx - gr.x0); pos[2 * i + 1] = sy + (gr.y1 - (b.Y - b.ocy)); }
+      const anelli = gr.anelli.map(a => { const o = new Float64Array(a.length); for (let i = 0; i < a.length; i += 2) { o[i] = sx + (a[i] - gr.x0); o[i + 1] = sy + (gr.y1 - a[i + 1]); } return o; });
+      contorni.push({ k: gr.k, g, ids: gr.ids, x: sx, y: sy, w: gr.bw, h: gr.bh, anelli, vis: true });
+    });
+    return { pos, contorni };
+  }
+
   /* classi dei lotti (0..4) da mostrare sulla mappa dato l'insieme delle classi spente; null = tutte */
   function classiAccese(spente) {
     if (!spente || !spente.size) return null;
     return CLASSI.map((_, i) => i).filter(i => !spente.has(i));
   }
 
+  const cacheAnelli = new Map();
+  /* contorno gia' scaricato (file per UPL in cache) o null; il risultato e' in cache perche' la vista Ordinata lo chiede per migliaia di lotti */
+  function anelliSync(k) {
+    if (cacheAnelli.has(k)) return cacheAnelli.get(k);
+    const u = dati && dati.lu[String(k)], f = u !== undefined && perUpl.get(u);
+    const v = f && f[String(k)];
+    const r = v ? { foglio: v[0], particella: v[1], m2: v[2], anelli: v[3].map(a => Float64Array.from(a)) } : null;
+    if (r) cacheAnelli.set(k, r);
+    return r;
+  }
+
+  async function caricaUpl(u) {
+    if (perUpl.has(u)) return;
+    const r = await fetch(`data/lotti/upl-${u}.json`);
+    if (!r.ok) throw new Error(`upl-${u}.json: HTTP ${r.status}`);
+    perUpl.set(u, await r.json());
+  }
+
   async function anelli(k) {
     if (!dati) await carica();
     const u = dati.lu[String(k)];
     if (u === undefined) return null;
-    if (!perUpl.has(u)) {
-      const r = await fetch(`data/lotti/upl-${u}.json`);
-      if (!r.ok) throw new Error(`upl-${u}.json: HTTP ${r.status}`);
-      perUpl.set(u, await r.json());
-    }
-    const v = perUpl.get(u)[String(k)];
-    return v ? { foglio: v[0], particella: v[1], m2: v[2], anelli: v[3].map(a => Float64Array.from(a)) } : null;
+    await caricaUpl(u);
+    return anelliSync(k);
+  }
+
+  /* tutti i contorni (circa 9 MB in 55 file): servono alla vista Ordinata dei lotti */
+  async function caricaGeometrie() {
+    if (!dati) await carica();
+    await Promise.all([...new Set(Object.values(dati.lu))].map(caricaUpl));
+  }
+
+  /* lotto principale (k, o -1) di ogni edificio del livello */
+  async function lottoDiItems(livello, nItems) {
+    if (!dati) await carica();
+    const perm = await permLivello(livello), out = new Int32Array(nItems);
+    for (let i = 0; i < nItems; i++) out[i] = dati.e[perm ? perm[i] : i];
+    return out;
   }
 
   /* items: edifici del livello (X, Y = centroide in dm, y nord; ocx, ocy, ow, oh = riquadro non ruotato, y verso il basso);
@@ -151,7 +218,7 @@
     return { pos, w, h, anelliBlocco };
   }
 
-  const Lotti = { CLASSI, CLASSI_EDIFICI, classiItems, nascosto, statFiltrate, applica, classiAccese, classe, scheda, carica, pronto: () => !!dati, membri, selezionaMembri, anelli, layoutLotto };
+  const Lotti = { CLASSI, CLASSI_EDIFICI, classiItems, gruppi, posiziona, anelliSync, caricaGeometrie, lottoDiItems, nascosto, statFiltrate, applica, classiAccese, classe, scheda, carica, pronto: () => !!dati, membri, selezionaMembri, anelli, layoutLotto };
   if (typeof module !== 'undefined' && module.exports) module.exports = Lotti;
   else root.Lotti = Lotti;
 })(typeof window !== 'undefined' ? window : globalThis);
