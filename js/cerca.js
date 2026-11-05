@@ -1,9 +1,10 @@
-/* Cerca intelligente in basso al centro: circoscrizione, quartiere e UPL in un'unica casella.
+/* Cerca intelligente in basso al centro: circoscrizione, quartiere, UPL e indirizzo (via + civico) in un'unica casella.
+   - "via maqueda 100": data/civici.json (ANNCSU, caricato alla prima digitazione) porta all'edificio piu' vicino al civico;
    - la gerarchia (circoscrizione > quartiere > UPL) viene da `parent` in data/index.json, quindi vale per tutti i livelli senza caricarli;
    - a scalare: con una zona selezionata i suggerimenti partono dalle zone che ne dipendono (poi quelle fuori ambito, attenuate);
    - ← / → (anche da tastiera) scorrono le zone sorelle, le stesse mostrate dalla mini-mappa.
    Cerca.init(S, azioni) una volta; Cerca.aggiorna() a ogni cambio di selezione o livello.
-   azioni = {vaiAZona(id), seleziona(zi | null)}. */
+   azioni = {vaiAZona(id), seleziona(zi | null), vaiAEdificio(u, bi)}. */
 (function (root) {
   const $ = id => document.getElementById(id);
   const SIGLA = { circ: 'Circ.', quar: 'Quartiere', upl: 'UPL' };
@@ -12,6 +13,17 @@
   const breve = z => z.level === 'circ' ? z.name.replace(/^Circoscrizione\s+/i, 'Circ. ') : z.name;
 
   let S, az, zone = [], per = new Map(), opz = [], att = -1, pronto = false;
+  let civ = null, vie = [], caricamentoCiv = null;                       // vie: [{nome, hay, parole}] da civici.json
+
+  const TIPI = new Set(['via', 'corso', 'viale', 'piazza', 'piazzale', 'vicolo', 'largo', 'strada', 'salita', 'lungomare', 'cortile', 'discesa']);
+  const MINUSC = new Set(['di', 'del', 'della', 'dei', 'delle', 'degli', 'dello', 'da', 'e', 'al', 'alla', 'in']);
+  const bello = n => n.toLowerCase().replace(/[^\s'’.-]+/g, (w, i) => (i && MINUSC.has(w)) ? w : w.charAt(0).toUpperCase() + w.slice(1));
+  function caricaCivici() {
+    if (!caricamentoCiv) caricamentoCiv = fetch('data/civici.json').then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(d => { civ = d; vie = Object.keys(d).map(nome => { const hay = norm(nome); return { nome, hay, parole: hay.split(/[^a-z0-9]+/).filter(Boolean) }; }); if (pronto && !$('cerca-lista').hidden) apri(); })
+      .catch(() => { caricamentoCiv = null; });                         // senza civici la ricerca per zona funziona comunque
+    return caricamentoCiv;
+  }
 
   function init(stato, azioni) {
     S = stato; az = azioni;
@@ -46,8 +58,38 @@
   }
 
   /* ---------- suggerimenti ---------- */
+  /* indirizzi: "via maqueda" propone le vie, "via maqueda 1" i civici che iniziano per 1 */
+  function indirizzi(qn, soloCivici) {
+    if (!civ) return [];
+    const t = qn.split(/\s+/).filter(Boolean);
+    const num = t.length > 1 && /^\d+[a-z/]*$/.test(t[t.length - 1]) ? t.pop() : null;
+    let viaQ = num ? t : qn.split(/\s+/).filter(Boolean);
+    if (!viaQ.length) return [];
+    const cerca = q => vie.filter(v => q.every(p => v.parole.some(w => w.startsWith(p))));
+    let trovate = cerca(viaQ);
+    if (!trovate.length && viaQ.length > 1 && TIPI.has(viaQ[0])) { viaQ = viaQ.slice(1); trovate = cerca(viaQ); }   // "corso X" ma in archivio e' "via X"
+    if (!trovate.length) return [];
+    const esatta = trovate.find(v => v.hay === viaQ.join(' '));
+    const civici = v => {
+      const [nn, u, bi] = civ[v.nome], out = [];
+      for (let k = 0; k < nn.length && out.length < MAX; k++) {
+        const c = nn[k].toLowerCase();
+        if (!num || c.startsWith(num)) out.push({ civ: true, via: v.nome, num: nn[k], u: u[k], bi: bi[k], p: c === num ? 0 : 1 });
+      }
+      return out.sort((a, b) => a.p - b.p);
+    };
+    const vq = viaQ.join(' ');                                            // vie piu' pertinenti prima: nome uguale, poi che inizia cosi', poi le piu' corte
+    trovate.sort((a, b) => ((b.hay === vq) - (a.hay === vq)) || (b.hay.startsWith(vq) - a.hay.startsWith(vq)) || a.hay.length - b.hay.length);
+    if (num) { const r = []; for (const v of trovate) { r.push(...civici(v)); if (r.length >= MAX) break; } return r.slice(0, MAX); }
+    if (esatta) return civici(esatta);                                    // via scelta: elenca i primi civici
+    if (soloCivici) return [];
+    return trovate.slice(0, 5).map(v => ({ via: v.nome, n: civ[v.nome][0].length }));
+  }
+
   function suggerimenti(q) {
     const id = selId(), amb = ambito(id), qn = norm(q.trim());
+    const ind = qn ? indirizzi(qn) : [];
+    if (ind.some(o => o.civ)) return ind;                                  // "via + civico": solo indirizzi
     const dentro = z => !amb || z.parent === amb || discende(z, amb);
     if (!qn) {
       if (!amb) return zone.filter(z => z.level === 'circ').map(z => ({ z, in: true }));
@@ -62,7 +104,7 @@
     const r = [];
     for (const z of zone) { if (z.id === id) continue; const p = punti(z); if (p >= 0) r.push({ z, p, in: dentro(z) }); }
     r.sort((a, b) => (b.in - a.in) || (a.p - b.p) || (a.z.ord - b.z.ord));
-    return r.slice(0, MAX);
+    return r.slice(0, MAX).concat(ind);
   }
 
   /* ---------- disegno ---------- */
@@ -71,6 +113,13 @@
   function elenco() {
     const ul = $('cerca-lista'); ul.textContent = '';
     opz.forEach((o, i) => {
+      if (o.via) {
+        const li = el('li', 'opz'); li.id = 'opz-' + i; li.setAttribute('role', 'option'); li.setAttribute('aria-selected', String(i === att));
+        li.append(el('span', 'lv via', o.civ ? 'Civico' : 'Via'), el('span', 'nm', o.civ ? `${bello(o.via)} ${o.num}` : bello(o.via)));
+        if (!o.civ) li.append(el('span', 'pa', o.n + ' civici'));
+        li.addEventListener('mousedown', e => { e.preventDefault(); scegli(i); });
+        ul.append(li); return;
+      }
       if (!o.in && (i === 0 || opz[i - 1].in)) ul.append(Object.assign(el('li', 'sep', 'Fuori da questo ambito'), { role: 'presentation' }));
       const li = el('li', 'opz' + (o.in ? '' : ' fuori')); li.id = 'opz-' + i; li.setAttribute('role', 'option'); li.setAttribute('aria-selected', String(i === att));
       const b = el('span', 'lv ' + o.z.level, SIGLA[o.z.level]);
@@ -80,7 +129,7 @@
       li.addEventListener('mousedown', e => { e.preventDefault(); scegli(i); });
       ul.append(li);
     });
-    if (!opz.length) ul.append(Object.assign(el('li', 'vuoto', 'Nessuna zona trovata'), { role: 'presentation' }));
+    if (!opz.length) ul.append(Object.assign(el('li', 'vuoto', civ || !$('cerca-zona').value.trim() ? 'Nessuna zona o indirizzo trovato' : 'Nessuna zona trovata (carico gli indirizzi…)'), { role: 'presentation' }));
   }
   function evidenzia(i) {
     att = i;
@@ -95,7 +144,9 @@
   function chiudi() { $('cerca-lista').hidden = true; $('cerca-zona').setAttribute('aria-expanded', 'false'); $('cerca-zona').removeAttribute('aria-activedescendant'); att = -1; }
   function scegli(i) {
     const o = opz[i]; if (!o) return;
-    $('cerca-zona').value = ''; chiudi(); az.vaiAZona(o.z.id);
+    if (o.via && !o.civ) { $('cerca-zona').value = bello(o.via) + ' '; apri(); return; }   // via scelta: ora i civici
+    $('cerca-zona').value = ''; chiudi();
+    if (o.civ) az.vaiAEdificio(o.u, o.bi); else az.vaiAZona(o.z.id);
   }
 
   function aggiorna() {
@@ -128,7 +179,7 @@
     $('cerca-prec').addEventListener('click', () => passo(-1));
     $('cerca-succ').addEventListener('click', () => passo(1));
     $('cerca-reset').addEventListener('click', () => { inp.value = ''; chiudi(); inp.blur(); az.reset(); });
-    inp.addEventListener('focus', apri);
+    inp.addEventListener('focus', () => { caricaCivici(); apri(); });
     inp.addEventListener('click', () => { if ($('cerca-lista').hidden) apri(); });
     inp.addEventListener('input', apri);
     inp.addEventListener('blur', chiudi);

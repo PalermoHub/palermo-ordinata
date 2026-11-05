@@ -79,12 +79,12 @@
 <svg id="mini" role="group" aria-label="Mappa delle zone" hidden></svg>
 </div>
 
-<div id="cerca-bar" role="search" aria-label="Cerca circoscrizione, quartiere o UPL">
+<div id="cerca-bar" role="search" aria-label="Cerca circoscrizione, quartiere, UPL o indirizzo">
   <div id="cerca-briciole" hidden></div>
   <div id="cerca-riga">
     <div id="cerca-campo">
       <button id="cerca-prec" type="button" aria-label="Zona precedente"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
-      <input type="text" id="cerca-zona" role="combobox" aria-expanded="false" aria-controls="cerca-lista" aria-autocomplete="list" autocomplete="off" spellcheck="false" placeholder="Cerca circoscrizione, quartiere o UPL…  ( / )">
+      <input type="text" id="cerca-zona" role="combobox" aria-expanded="false" aria-controls="cerca-lista" aria-autocomplete="list" autocomplete="off" spellcheck="false" placeholder="Cerca zona o indirizzo (via Maqueda 100)…  ( / )">
       <span id="cerca-pos" aria-live="polite"></span>
       <button id="cerca-succ" type="button" aria-label="Zona successiva"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
       <button id="cerca-reset" type="button" title="Azzera filtri e torna alla vista iniziale" aria-label="Azzera tutti i filtri e torna alla vista iniziale"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button>
@@ -254,10 +254,12 @@
         <li>La <b>X</b> accanto al blocco (o il tasto <kbd>M</kbd>) riporta alla Mappa.</li>
       </ul>
       <figure><button type="button" class="gal" data-gal="img/guida/ordinata-tip.png" data-cap="Passando sopra un edificio compare la scheda con i dati"><img src="img/guida/ordinata-tip.png" alt="Scheda con i dati di un edificio" loading="lazy"></button><figcaption>Passando sopra un edificio compare la scheda con i dati</figcaption></figure>
-      <h2>4. Cercare una zona</h2>
+      <h2>4. Cercare una zona o un indirizzo</h2>
       <figure><button type="button" class="gal" data-gal="img/guida/cerca-lista.png" data-cap="La barra di ricerca in basso suggerisce le zone mentre scrivi"><img src="img/guida/cerca-lista.png" alt="Barra di ricerca con elenco dei suggerimenti" loading="lazy"></button><figcaption>La barra di ricerca in basso suggerisce le zone mentre scrivi</figcaption></figure>
       <ul class="guida">
         <li>Scrivi nella barra in basso (circoscrizione, quartiere o UPL) e scegli dall'elenco.</li>
+        <li><b>Indirizzo</b>: scrivi via e civico (es. «via Maqueda 100»). Se scrivi solo la via, scegli «Via …» e poi il civico dall'elenco. La mappa si centra sull'edificio più vicino a quel civico e lo evidenzia.</li>
+        <li>I civici sono ANNCSU (feb. 2026): il punto sta sull'ingresso, quindi l'edificio trovato è il più probabile, non sempre quello esatto.</li>
         <li>Le <b>frecce</b> ai lati della barra passano alla zona precedente o successiva.</li>
         <li>Il pulsante circolare a destra <b>azzera</b> filtri e selezione e torna alla vista iniziale.</li>
         <li>La mini-mappa in basso a sinistra mostra dove sei: clicca una zona per andarci.</li>
@@ -301,6 +303,7 @@
       <h2>Fonti</h2>
       <p>Edifici: «Edifici 3D (edifici unificati)» di <a href="https://palermodigitaltwin.opendatasicilia.it/fonti.html" target="_blank" rel="noopener">DigitalTwin Palermo</a>, sintesi di tre fonti globali (Overture Maps Foundation, Global Building Atlas, OpenBuildingMap) unite con una pipeline di geoprocessing (2026) e del rilievo volumetrico del Comune di Palermo (2006). Licenza dichiarata dalla fonte: da verificare prima di un uso diverso dalla consultazione.</p>
       <p>Confini: circoscrizioni, quartieri e UPL del Comune di Palermo.</p>
+      <p>Indirizzi (solo per la ricerca): civici ANNCSU, Archivio nazionale dei numeri civici e delle strade urbane (Agenzia delle Entrate e ISTAT), aggiornamento febbraio 2026. Ogni civico è agganciato all'edificio più vicino (entro 25 m), quindi il risultato è l'edificio più probabile, non sempre quello esatto.</p>
       <p>Idea e metodo: l'idea viene da <a href="https://lnkd.in/p/dDZ9AtBM" target="_blank" rel="noopener">un post di Adam Roberts</a> per il #30DayMapChallenge 2026 (giorno 3, Poligoni), «Paris, sorted». Il codice di quel progetto è <a href="https://github.com/abenrob/30daymap2026/tree/main/day-03-polygons" target="_blank" rel="noopener">pubblico su GitHub</a>. Abbiamo ripreso l'idea e il principio di disposizione; i dati, la pipeline e il codice di questa mappa sono stati rifatti per Palermo.</p>
       <p>Mappa di base: © OpenStreetMap contributors, OpenFreeMap, OpenMapTiles. Satellite: Esri World Imagery.</p>
       <h2>Sviluppo</h2>

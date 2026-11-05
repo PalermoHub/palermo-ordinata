@@ -13,6 +13,7 @@ Poi apri `http://localhost:8765/`. Serve un server locale: `fetch` dei JSON non 
 - **Viste (speed-dial a sinistra):** Mappa, con tutti i 111.478 edifici sulla base scura, e Ordinata, con un blocco per ogni zona del livello scelto, posto vicino alla posizione geografica della zona e con gli edifici dal più grande al più piccolo alla stessa scala. Il passaggio Mappa ⇄ Ordinata è animato (1,6 s).
 - **Livello:** Circoscrizioni (8), Quartieri (25) o UPL (55), dallo speed-dial o dal pannello. Tutte le zone del livello sono visibili insieme.
 - **Pannello a destra:** tab Zone (statistiche, ricerca, tre classifiche a barre per edifici, impronta a terra e mediana, con le barre di classe cliccabili come filtri), Metodologia, Utilità, Guida (screenshot) e Credits (fonti e ringraziamenti). Il pulsante «Torna su» riporta in cima al pannello.
+- **Ricerca** (barra in basso): circoscrizione, quartiere, UPL o indirizzo. Con «via Maqueda 100» la mappa si centra sull'edificio più vicino al civico ANNCSU e lo evidenzia (aggancio approssimato: l'edificio più probabile).
 - **Colore:** altezza, superficie dell'impronta oppure uso.
 - **Zone:** un clic su una zona (mappa, blocco, mini-mappa o tabella) la seleziona e porta lì la vista; Esc o "Mostra tutta la città" la deseleziona.
 - **Mappa:** rotella o pinch per lo zoom, trascinamento per spostarsi, doppio clic nella vista Ordinata per tornare all'inquadratura. Il passaggio del mouse (o un tap) mostra uso, altezza, superficie e zona dell'edificio.
@@ -71,7 +72,10 @@ PY=$HOME/micromamba/envs/qgis/bin/python
 $PY scripts/00_verifica.py   # controllo dei dati (sola lettura)
 $PY scripts/01_prep.py       # pulizia e assegnazione alle zone → data/work/
 $PY scripts/02_export.py     # data/index.json e data/zone/*.json
+$PY scripts/05_civici.py     # data/civici.json: indice dei civici per la ricerca
 ```
+
+`05_civici.py` aggancia ogni civico ANNCSU (164.742, 4.735 vie) all'edificio più vicino entro 25 m (99,4% agganciato, 36% dentro il poligono) e scrive l'indice caricato dalla ricerca alla prima digitazione. Legge i civici da `DigitalTwin/dati/civici-omi/civici/`.
 
 Le soglie e le classi sono in `scripts/common.py`. Il formato di ogni edificio è descritto in testa a `scripts/02_export.py`.
 
@@ -79,7 +83,7 @@ Le soglie e le classi sono in `scripts/common.py`. Il formato di ogni edificio �
 
 ```
 index.html  css/style.css  js/layout.js  js/app.js
-data/index.json  data/zone/<id>.json
+data/index.json  data/zone/<id>.json  data/civici.json
 scripts/  docs/  img/
 ```
 
@@ -103,4 +107,5 @@ Pubblicazione (dopo aver chiarito la licenza dei dati) e altre animazioni; vedi 
 
 - **Codice** (`index.html`, `css/`, `js/`): [MIT](LICENSE). L'idea e il metodo derivano da [day-03-polygons](https://github.com/abenrob/30daymap2026/tree/main/day-03-polygons) di Adam Roberts, che ha autorizzato l'adattamento a Palermo; il repository originale non indica una licenza.
 - **Dati** (`data/`): sintesi degli edifici di [DigitalTwin Palermo](https://palermodigitaltwin.opendatasicilia.it/fonti.html) da Overture Maps, Global Building Atlas, OpenBuildingMap e rilievo CTC 2006 (CC BY 4.0). La licenza della sintesi è ancora da verificare: finché non è confermata, valgono le condizioni delle fonti (alcune, come OpenStreetMap/ODbL, impongono attribuzione e condivisione allo stesso modo). Confini: ISTAT/Comune di Palermo.
+- **Civici** (`data/civici.json`, solo per la ricerca): ANNCSU, Archivio nazionale dei numeri civici e delle strade urbane (Agenzia delle Entrate e ISTAT), febbraio 2026; dati aperti, da citare come fonte.
 - **Base cartografica**: © OpenStreetMap contributors, tramite OpenFreeMap.

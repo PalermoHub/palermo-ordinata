@@ -182,6 +182,14 @@ async function vaiAZona(id) {
   const zi = S.citta ? S.citta.zone.findIndex(x => x.id === id) : -1;
   if (zi >= 0) seleziona(zi);
 }
+/* civico trovato dal cerca: livello UPL, poi Mappa centrata sull'edificio (u = posizione dell'UPL, bi = posizione nel suo file) */
+async function vaiAEdificio(u, bi) {
+  if (inCoda(() => vaiAEdificio(u, bi))) return;
+  if (S.livello !== 'upl' || !S.citta) await cambiaLivello('upl');
+  if (!S.citta || S.livello !== 'upl') return;
+  let i = bi; for (let k = 0; k < u; k++) i += S.citta.zone[k].n;
+  if (S.citta.items[i]) tornaAlPoligono(i);
+}
 /* doppio click su una zona: la seleziona, anima Mappa → Ordinata, poi inquadra il blocco e apre il pannello */
 /* doppio tap (su touch il dblclick non e' affidabile): due tocchi entro 350 ms e 30 px */
 let ultimoTap = null, tapGestito = 0;
@@ -198,7 +206,7 @@ function apriOrdinata(zi) {
   if (S.vista === 'sorted') { fine(); return; }
   vaiA('sorted'); S.coda.push(fine); svuotaCoda();
 }
-const azioni = { seleziona: (zi, z) => { if (mobile() && pannelloAperto()) impostaPannello(false); seleziona(zi, z); }, filtra, solo: soloClasse, azzera: azzeraFiltro, vaiAZona, reset: resetTutto };
+const azioni = { seleziona: (zi, z) => { if (mobile() && pannelloAperto()) impostaPannello(false); seleziona(zi, z); }, filtra, solo: soloClasse, azzera: azzeraFiltro, vaiAZona, vaiAEdificio, reset: resetTutto };
 
 /* ---------- mini-mappa ---------- */
 function minimappa() {
