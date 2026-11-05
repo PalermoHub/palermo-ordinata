@@ -492,7 +492,7 @@ function initResizePannello() {
   h.addEventListener('pointerup', fine); h.addEventListener('pointercancel', fine);
 }
 function aggiornaTab() {
-  const t = pannelloAperto() && mobile() ? 'zone' : document.body.classList.contains('sheet-filtri') ? 'filtri' : 'mappa';
+  const t = pannelloAperto() && mobile() ? (document.querySelector('.tab-hdr.active')?.dataset.tab === 'guida' ? 'guida' : 'zone') : document.body.classList.contains('sheet-filtri') ? 'filtri' : 'mappa';
   document.querySelectorAll('#m-tabs button').forEach(b => { const on = b.dataset.t === t; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
 }
 function aggiornaUI() {
@@ -587,7 +587,14 @@ function collegaInterfaccia() {
   document.querySelectorAll('#m-tabs button').forEach(b => b.addEventListener('click', () => {
     const t = b.dataset.t;
     if (t === 'filtri') { const a = !document.body.classList.contains('sheet-filtri'); impostaFiltri(a); if (a) { $('filtri').classList.remove('chiuso'); impostaPannello(false); } }
-    else if (t === 'zone') { impostaFiltri(false); impostaPannello(!pannelloAperto()); }
+    else if (t === 'zone' || t === 'guida') {                                    // stesso pannello, tab interno diverso
+      impostaFiltri(false);
+      const hdr = document.querySelector('.tab-hdr.active'), inGuida = !!hdr && hdr.dataset.tab === 'guida';
+      const aperto = pannelloAperto() && (t === 'guida' ? inGuida : !inGuida);    // il bottone è già "acceso" -> secondo tocco chiude
+      if (t === 'guida' && !inGuida) document.querySelector('.tab-hdr[data-tab="guida"]').click();
+      if (t === 'zone' && inGuida) document.querySelector('.tab-hdr[data-tab="zone"]').click();
+      impostaPannello(!aperto);
+    }
     else { impostaFiltri(false); impostaPannello(false); }
     aggiornaTab();
   }));
