@@ -899,6 +899,11 @@ function collegaInterfaccia() {
 function resetTutto() {
   if (!S.citta || S.anim) return;
   S.spente.clear(); S.sel = null;
+  if (S.lotti) {                                                                // anche i lotti tornano allo stato iniziale: filtro per classe, edifici sui lotti, scheda e selezione
+    S.lottiOff.clear(); S.edifici = true; $('lotti-edifici').checked = true; S.lottoHover = null; LM.evidenzia(null);
+    chiudiSchedaLotto(); ricalcolaStatLotti(S.citta); sincronizzaLotti();
+  }
+  if (S.ordLotti) impostaOrdLotti(false);                                       // la vista Ordinata torna agli edifici
   nascondiTip(); R.ricolora(); scriviHash(); Pannello.aggiorna(S, azioni); Cerca.aggiorna(); marcaMini();
   vaiHome();
 }
