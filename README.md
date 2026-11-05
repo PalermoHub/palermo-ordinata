@@ -103,9 +103,6 @@ Esempio: `img/anim/circ-i.gif`.
 
 Il disegno usa Pillow e lo stesso layout dell'app; servono `ffmpeg` e, per Inter, la variabile `FONT_DIR` (altrimenti DejaVu Sans).
 
-## Da fare
-
-Pubblicazione (dopo aver chiarito la licenza dei dati) e altre animazioni; vedi [`docs/DA_FARE.md`](docs/DA_FARE.md).
 
 ## Licenza
 
