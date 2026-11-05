@@ -148,9 +148,65 @@
     document.querySelectorAll('#seg-colore button').forEach(b => { const on = b.dataset.c === S.colore; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
   }
 
+  /* Confronto di due zone dello stesso livello, sulle sole classi attive (stessi filtri della legenda). */
+  const conf = { liv: null, a: null, b: null, aperto: false };
+
+  function metricheZona(S, zi) {
+    const k = KEY[S.colore], z = S.citta.zone[zi], ar = [], h = [];
+    let imp = 0;
+    for (const b of S.citta.items) if (b.z === zi && !S.spente.has(b.cls[k])) { ar.push(b.area); imp += b.area; if (b.cls[1] !== 6) h.push(b.h); }
+    return { n: ar.length, imp, med: Math.round(mediana(ar)), alt: mediana(h), dens: ar.length / z.area_km2 };
+  }
+
+  const RIGHE_CONF = [
+    { t: 'Edifici', v: m => m.n, f: v => fmt(v) },
+    { t: 'Impronta a terra', v: m => m.imp, f: v => `${f1(v / 1e4)} ha` },
+    { t: 'Superficie mediana', v: m => m.med, f: v => `${fmt(v)} m²` },
+    { t: 'Altezza mediana', v: m => m.alt, f: v => v ? `${f1(v)} m` : 'n.d.' },
+    { t: 'Densità', v: m => m.dens, f: v => `${fmt(Math.round(v))} /km²` },
+  ];
+
+  function confronto(S) {
+    const box = $('confronto'); if (!box) return;
+    box.textContent = '';
+    const Z = S.citta.zone;
+    if (conf.liv !== S.livello) { conf.liv = S.livello; conf.a = null; conf.b = null; }
+    if (conf.a === null) conf.a = S.sel !== null ? S.sel : 0;
+    if (conf.b === null || conf.b === conf.a) conf.b = Z.findIndex((_, i) => i !== conf.a);
+    const det = el('details', 'conf'); det.open = conf.aperto;
+    det.addEventListener('toggle', () => { conf.aperto = det.open; });
+    det.append(el('summary', '', 'Confronta due zone'));
+    const sel = (chiave) => {
+      const s = el('select'); s.setAttribute('aria-label', chiave === 'a' ? 'Prima zona' : 'Seconda zona');
+      const ord = Z.map((z, i) => ({ z, i })).sort((x, y) => x.z.name.localeCompare(y.z.name, 'it'));
+      for (const { z, i } of ord) { const o = el('option', '', z.name); o.value = String(i); if (conf[chiave] === i) o.selected = true; s.append(o); }
+      s.addEventListener('change', () => { conf[chiave] = +s.value; tabella(); });
+      return s;
+    };
+    const scelte = el('div', 'conf-sel'); scelte.append(sel('a'), el('span', '', 'vs'), sel('b'));
+    const tab = el('div', 'conf-tab');
+    const nota = el('p', 'conf-nota');
+    const k = S.colore, nomi = S.index.classi[k];
+    nota.textContent = S.spente.size ? `Solo le classi attive di ${NOME_COL[k]}: ${nomi.length - S.spente.size} su ${nomi.length}.` : `Tutte le classi di ${NOME_COL[k]}. Spegni classi nella legenda per confrontare una categoria.`;
+    function tabella() {
+      tab.textContent = '';
+      const ma = metricheZona(S, conf.a), mb = metricheZona(S, conf.b);
+      const t = el('table'), th = el('tr');
+      th.append(el('th'), el('th', '', Z[conf.a].name), el('th', '', Z[conf.b].name)); t.append(th);
+      for (const r of RIGHE_CONF) {
+        const va = r.v(ma), vb = r.v(mb), tr = el('tr');
+        const ca = el('td', va > vb ? 'max' : '', r.f(va)), cb = el('td', vb > va ? 'max' : '', r.f(vb));
+        tr.append(el('th', '', r.t), ca, cb); t.append(tr);
+      }
+      tab.append(t);
+    }
+    tabella();
+    det.append(scelte, tab, nota); box.append(det);
+  }
+
   function aggiorna(S, az) {
     if (!S.citta) return;
-    controlli(S); stat(S, az); classifiche(S, az); quote(S, az); legenda(S, az);
+    controlli(S); stat(S, az); confronto(S); classifiche(S, az); quote(S, az); legenda(S, az);
   }
   root.Pannello = { aggiorna, controlli };
 })(typeof window !== 'undefined' ? window : globalThis);

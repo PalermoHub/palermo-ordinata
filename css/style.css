@@ -166,6 +166,16 @@ body.pw-drag #side-panel,body.pw-drag #cerca-bar{transition:none}
 .stat-nome button:hover{color:var(--text);border-color:var(--text-dim)}
 
 
+.conf{border:1px solid var(--panel-border);background:var(--overlay-1);border-radius:8px;padding:8px 12px;margin-bottom:10px}
+.conf summary{cursor:pointer;font-size:12px;font-weight:700}
+.conf-sel{display:flex;align-items:center;gap:6px;margin:8px 0;font-size:11px;color:var(--text-dim)}
+.conf-sel select{flex:1;min-width:0;background:var(--panel);color:var(--text);border:1px solid var(--panel-border);border-radius:6px;padding:4px 6px;font:inherit;font-size:12px}
+.conf-tab table{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
+.conf-tab th,.conf-tab td{padding:4px 4px;text-align:right;border-top:1px solid var(--panel-border);overflow-wrap:anywhere}
+.conf-tab th:first-child{text-align:left;font-weight:400;color:var(--text-dim)}
+.conf-tab tr:first-child th{border-top:none;font-weight:700;color:var(--text);font-size:11px}
+.conf-tab td.max{font-weight:800;color:var(--accent)}
+.conf-nota{margin:8px 0 0;font-size:11px;color:var(--text-dim);line-height:1.4}
 .rank-card{border:1px solid var(--panel-border);background:var(--overlay-1);border-radius:8px;padding:10px 12px;margin-bottom:10px}
 .rank-card h2{margin:0 0 8px;font-size:12px}
 .ranking-list{display:flex;flex-direction:column;gap:6px}
