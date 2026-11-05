@@ -295,7 +295,7 @@ function leggiHash() {
   const x = (p.get('x') || '').split(',').filter(Boolean).map(Number).filter(n => Number.isInteger(n) && n >= 0 && n < 32);
   const tab = p.get('p');
   return { l: LIVELLI.includes(l) ? l : 'circ', v: v === 'sorted' ? 'sorted' : 'map', z: p.get('z'), c: cam,
-    k: ['uso', 'alt', 'sup'].includes(k) ? k : 'alt', x, g: p.get('g') === '1', s: p.get('s') !== '0', i: p.get('i') === '1', o: p.get('o') === '1', q: p.get('q') === '1', ol: p.get('ol') === '1', e: p.get('e') !== '0', y: (p.get('y') || '').split(',').filter(Boolean).map(Number).filter(n => Number.isInteger(n) && n >= 0 && n < 5), lot: /^\d{1,7}$/.test(p.get('lot') || '') ? Number(p.get('lot')) : null, m: ['alt', 'cop', 'den'].includes(p.get('m')) ? p.get('m') : null, a: /^\w{1,30}$/.test(p.get('a') || '') ? p.get('a') : null,
+    k: ['uso', 'alt', 'sup'].includes(k) ? k : 'alt', x, g: p.get('g') === '1', s: p.get('s') !== '0', i: p.get('i') === '1', o: p.get('o') === '1', q: p.get('q') === '1', ol: p.get('ol') === '1', e: p.get('e') !== '0', y: (p.get('y') || '').split(',').filter(Boolean).map(Number).filter(n => Number.isInteger(n) && n >= 0 && n < 5), lot: /^\d{1,7}$/.test(p.get('lot') || '') ? Number(p.get('lot')) : null, m: ['alt', 'cop', 'den', 'lmed', 'frag', 'cavq', 'vuoq'].includes(p.get('m')) ? p.get('m') : null, a: /^\w{1,30}$/.test(p.get('a') || '') ? p.get('a') : null,
     t: p.get('t') === 'light' || p.get('t') === 'dark' ? p.get('t') : null,
     p: tab && document.querySelector(`.tab-hdr[data-tab="${CSS.escape(tab)}"]`) ? tab : 'zone' };
 }
@@ -390,7 +390,7 @@ function liberaIsolato() {
   const k = S.isoFocus, lotto = S.isoTipo === 'lotto', props = S.lottoProps;
   S.isoFocus = null; S.isoTipo = 'isolato'; S.lottoAnelli = null; S.lottoAnelliCitta = null; S.lottoProps = null; S.isoSet = null; S.isoItems = [];
   ricalcola(); Cerca.aggiorna(); marcaMini();
-  if (lotto) { if (S.lotti && props && props.k === k) apriSchedaLotto(k, props); else if (S.lotti) LM.seleziona(k); }
+  if (lotto) { if (S.lotti && props && props.k === k) apriSchedaLotto(k, props); }      // senza dati della scheda (link diretto) non si lascia una selezione senza scheda
   else if (S.isolati && k !== null) apriScheda(k);
 }
 /* accende o spegne il livello; il file (circa 8 MB) si scarica alla prima accensione */
@@ -429,8 +429,9 @@ function chiudiSchedaLotto() {
 async function apriLotto(k, subito = false) {
   if (S.anim || S.caricando || !S.citta || k == null) return;
   try {
-    const props = lottoProps && lottoProps.k === k ? lottoProps : null;
-    const [m, g] = await Promise.all([Lotti.membri(k, S.livello, S.citta.items.length), Lotti.anelli(k)]);
+    const props = lottoProps && lottoProps.k === k ? lottoProps : null, citta0 = S.citta, liv0 = S.livello;
+    const [m, g] = await Promise.all([Lotti.membri(k, liv0, citta0.items.length), Lotti.anelli(k)]);
+    if (S.citta !== citta0 || S.livello !== liv0) return;               // il livello e' cambiato durante il download: m e' riferito agli edifici del livello precedente
     if (!m.lista.length || !g) { avvisa('Nessun edificio in questo lotto.'); return; }
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
     for (const a of g.anelli) for (let i = 0; i < a.length; i += 2) {
@@ -523,7 +524,7 @@ function clicLegendaLotti(i, e) {                                   // come la l
 async function impostaLotti(on) {
   const sw = $('lotti'), leg = $('lotti-leg');
   if (!on) {
-    S.lotti = false; chiudiSchedaLotto(); LM.accendi(false); sw.checked = false; leg.hidden = true; $('lotti-edifici-lab').hidden = true; document.body.classList.remove('lotti-on');
+    S.lotti = false; S.lottoHover = null; B.map.getCanvas().style.cursor = ''; chiudiSchedaLotto(); LM.accendi(false); sw.checked = false; leg.hidden = true; $('lotti-edifici-lab').hidden = true; document.body.classList.remove('lotti-on');
     if (R && S.citta) R.disegna();
     S.lottiOff.clear(); S.edifici = true;
     if (S.citta) { ricalcolaStatLotti(S.citta); R.ricolora(); Pannello.aggiorna(S, azioni); R.disegna(); }
@@ -585,7 +586,7 @@ function collegaMappa() {
     if (S.lotti && S.vista === 'map' && !S.anim) { const h = LM.kSotto(ev.point), k = h ? h.k : null; if (k !== S.lottoHover) { S.lottoHover = k; LM.evidenzia(k); B.map.getCanvas().style.cursor = h ? 'pointer' : ''; } }
     if (S.vista === 'map' && !S.moran) mostraTip(ev.point.x, ev.point.y, ev.originalEvent.clientX, ev.originalEvent.clientY);
   });
-  B.map.on('mouseout', () => { if (S.lotti) { S.lottoHover = null; LM.evidenzia(null); } S.zonaHover = null; S.isoHover = -1; nascondiTip(); if (S.vista === 'map') R.disegna(); });
+  B.map.on('mouseout', () => { if (S.lotti) { S.lottoHover = null; LM.evidenzia(null); B.map.getCanvas().style.cursor = ''; } S.zonaHover = null; S.isoHover = -1; nascondiTip(); if (S.vista === 'map') R.disegna(); });
   B.map.on('movestart', nascondiTip);
   B.map.on('moveend', () => { if (!S.anim && S.citta) scriviHash(); });
   B.map.doubleClickZoom.disable();                                             // il doppio click apre la vista Ordinata della zona

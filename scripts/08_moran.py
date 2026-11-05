@@ -4,6 +4,9 @@ Variabili per UPL: altezza media (m, edifici con altezza nota), copertura
 (impronta a terra / area UPL) e densita' (edifici per km2). Pesi: contiguita'
 queen (tolleranza 1 m), standardizzati per riga; le UPL isolate ricevono i 2
 vicini piu' vicini. Significativita' con 9999 permutazioni condizionate.
+Variabili dai lotti catastali (servono 09_lotti.py: data/work/lotti.geojsonl e data/lotti/edifici.json):
+lotto mediano (m2, particelle non stradali con punto rappresentativo nella UPL), frammentazione (particelle per
+ettaro), quota di edifici a cavallo di piu' particelle (%), quota di particelle senza edifici (%).
 Legge data/work/edifici.gpkg (01_prep.py) e scrive data/moran.json.
 Uso: python3 scripts/08_moran.py
 """
@@ -22,6 +25,10 @@ VARIABILI = [
     ("alt", "Altezza media", "m"),
     ("cop", "Copertura del suolo", "%"),
     ("den", "Densità di edifici", "edifici/km²"),
+    ("lmed", "Lotto mediano", "m²"),
+    ("frag", "Frammentazione dei lotti", "lotti/ha"),
+    ("cavq", "Edifici a cavallo", "%"),
+    ("vuoq", "Lotti non costruiti", "%"),
 ]
 CLUSTER = ["ns", "HH", "LL", "LH", "HL"]  # indice salvato nel JSON
 
@@ -38,8 +45,25 @@ tab["alt"] = tab.UPL.map(hv)
 tab["cop"] = 100 * tab.foot / (tab.area_km2 * 1e6)
 tab["den"] = tab.n / tab.area_km2
 tab["id"] = "upl-" + tab.UPL.map(slug)
+
+# --- variabili dai lotti catastali ---
+lotti = gpd.read_file(os.path.join(WORK, "lotti.geojsonl")).to_crs(CRS)
+lotti = lotti[~lotti.Paricella.astype(str).str.upper().str.startswith("STRADA")].copy()   # le particelle stradali non sono lotti
+lotti["geometry"] = lotti.geometry.representative_point()
+j = gpd.sjoin(lotti[["m2", "lib", "geometry"]], upl[["UPL", "geometry"]], how="inner", predicate="within")
+gl = j.groupby("UPL")
+tab["lmed"] = tab.UPL.map(gl.m2.median())
+tab["frag"] = tab.UPL.map(gl.size()) / (tab.area_km2 * 100)          # particelle per ettaro (1 km2 = 100 ha)
+tab["vuoq"] = 100 * tab.UPL.map(gl.lib.mean())
+idx = json.load(open(os.path.join(OUT, "index.json")))
+ed = json.load(open(os.path.join(OUT, "lotti", "edifici.json")))
+cav = np.array(ed["cav"])
+cavn, off = {}, 0
+for z in [z for z in idx["zone"] if z["level"] == "upl"]:          # stesso ordine "UPL concatenate" di edifici.json
+    cavn[z["name"]] = int(((cav >= off) & (cav < off + z["n"])).sum()); off += z["n"]
+tab["cavq"] = 100 * tab.UPL.map(cavn) / tab.n.replace(0, np.nan)
 # UPL senza edifici (o senza altezze) non hanno un valore: restano fuori dall'analisi
-ok = tab.n.gt(0) & tab.alt.notna()
+ok = tab.n.gt(0) & tab.alt.notna() & tab.lmed.notna()
 print("UPL escluse:", list(tab.UPL[~ok]))
 tab = tab[ok].reset_index(drop=True)
 geom = upl.set_index("UPL").geometry.loc[tab.UPL].reset_index(drop=True)

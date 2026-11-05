@@ -23,7 +23,7 @@
   const N1 = new Intl.NumberFormat('it-IT', { maximumFractionDigits: 1 });
   const N0 = new Intl.NumberFormat('it-IT', { maximumFractionDigits: 0, useGrouping: 'always' });
   const fmtP = p => p <= 0.0001 ? '≤ 0,0001' : p < 0.001 ? '< 0,001' : N2.format(p).replace(/0$/, '');
-  const fmtV = (v, um) => um === 'm' ? `${N1.format(v)} m` : um === '%' ? `${N1.format(v)}%` : `${N0.format(v)} ${um}`;
+  const fmtV = (v, um) => um === 'm' ? `${N1.format(v)} m` : um === '%' ? `${N1.format(v)}%` : um === 'lotti/ha' ? `${N1.format(v)} lotti/ha` : `${N0.format(v)} ${um}`;
   const SVGNS = 'http://www.w3.org/2000/svg';
 
   let dati = null, index = null, feat = null, bboxes = {}, nomi = {}, mappa = null, vid = 'alt', attivo = false, promessa = null, tip = null;

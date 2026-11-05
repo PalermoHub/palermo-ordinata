@@ -198,6 +198,10 @@
         <button type="button" data-m="alt" title="Altezza media degli edifici di ogni UPL">Altezza media</button>
         <button type="button" data-m="cop" title="Quota di suolo occupata dalle impronte degli edifici">Copertura</button>
         <button type="button" data-m="den" title="Numero di edifici per km²">Densità</button>
+        <button type="button" data-m="lmed" title="Superficie mediana dei lotti catastali della UPL (particelle stradali escluse)">Lotto mediano</button>
+        <button type="button" data-m="frag" title="Frammentazione fondiaria: particelle catastali per ettaro (particelle stradali escluse)">Frammentazione</button>
+        <button type="button" data-m="cavq" title="Quota di edifici a cavallo di più particelle: indicatore indiretto di come è stato spezzato il dato">A cavallo</button>
+        <button type="button" data-m="vuoq" title="Quota di particelle senza edifici sopra (particelle stradali escluse): aree libere o interstiziali">Non costruiti</button>
       </div>
       <button id="moran-btn" class="btn-acc" type="button" title="Mostra o nascondi i cluster sulla mappa (al posto degli edifici)">Mostra sulla mappa</button>
       <div id="moran-body"></div>
@@ -238,7 +242,7 @@
       <h2>8. L'autocorrelazione spaziale</h2>
       <p><b>Cosa significa.</b> La prima legge della geografia dice che «tutto è legato a tutto, ma le cose vicine sono più legate di quelle lontane». L'autocorrelazione spaziale misura quanto è vera, per un dato valore: se le UPL con edifici alti confinano con altre UPL con edifici alti (e le basse con le basse), il valore è <b>autocorrelato</b>; se si distribuisce a caso sulla città, no. <b>A cosa serve.</b> Una mappa a colori mostra dei raggruppamenti, ma l'occhio li vede anche nel caso: il test dice se sono più netti di quanto farebbe il caso, e il LISA indica <i>dove</i> sono. Così si separano le zone che formano un blocco omogeneo (hotspot e coldspot) da quelle che fanno eccezione rispetto ai vicini (outlier).</p>
       <ul class="guida">
-        <li>Si calcola sulle <b>55 UPL</b>, con tre variabili: altezza media (edifici con altezza nota), copertura (impronta a terra divisa per l'area della UPL) e densità (edifici per km²).</li>
+        <li>Si calcola sulle <b>55 UPL</b>, con sette variabili. Dagli edifici: altezza media (edifici con altezza nota), copertura (impronta a terra divisa per l'area della UPL) e densità (edifici per km²). Dai <b>lotti catastali</b> (particelle stradali escluse, assegnate alla UPL che contiene il loro punto rappresentativo): <b>lotto mediano</b> (m²), <b>frammentazione</b> (particelle per ettaro), quota di <b>edifici a cavallo</b> di più particelle e quota di <b>lotti non costruiti</b>. Le ultime quattro distinguono il tessuto storico, a lotti piccoli e frammentati, dalle lottizzazioni.</li>
         <li>Due UPL sono <b>vicine</b> se si toccano (contiguità «queen»); i pesi sono standardizzati per riga, quindi il «valore dei vicini» è la media dei confinanti.</li>
         <li><b>Moran's I</b> misura se UPL vicine hanno valori simili: vicino a 0 è casuale, positivo vuol dire cluster, negativo vuol dire alternanza. La significatività viene da <b>9.999 permutazioni</b> casuali dei valori sulle UPL, non da un'approssimazione normale.</li>
         <li><b>LISA</b> (Anselin, 1995) scompone I in un contributo per UPL. Con 9.999 permutazioni condizionate ogni UPL riceve un p locale: sotto 0,05 è classificata <b>HH</b>, <b>LL</b>, <b>LH</b> o <b>HL</b> secondo che sia sopra o sotto la media e lo sia anche la media dei vicini. Il resto è «non significativo».</li>
