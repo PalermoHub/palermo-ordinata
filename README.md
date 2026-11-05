@@ -2,10 +2,6 @@
 
 Gli edifici di Palermo, zona per zona: colorati sulla mappa, poi "sollevati" e ordinati in righe dal più grande al più piccolo, alla stessa scala. Ispirato a [Paris, sorted](https://abenrob.github.io/30daymap2026/day-03-polygons/) di Adam Roberts (#30DayMapChallenge 2026, giorno 3, Poligoni). Tutti gli edifici sono visibili insieme su una base scura ([MapLibre GL](https://maplibre.org/) con [OpenFreeMap](https://openfreemap.org/)); gli edifici e le animazioni sono disegnati da zero in JavaScript e Canvas 2D. L'interfaccia segue lo stile di `potere_d'acquisto_reale` (speed-dial a sinistra, pannello a tab a destra).
 
-![Circoscrizione I: dalla mappa alle righe ordinate](img/anim/circ-i.gif)
-![Vista ordinata](img/anteprima-ordinata.png)
-![Vista mappa](img/anteprima-mappa.png)
-
 ## Come si usa
 
 ```
@@ -97,7 +93,7 @@ scripts/make_gif.sh upl-tribunali-o-kalsa                # img/anim/<id>.mp4 e .
 $PY scripts/test_layout.py js_layout.json                # confronto del packing con quello JS
 ```
 
-Esempio: [`img/anim/upl-tribunali-o-kalsa.gif`](img/anim/upl-tribunali-o-kalsa.gif). Il disegno usa Pillow e lo stesso layout dell'app; servono `ffmpeg` e, per Inter, la variabile `FONT_DIR` (altrimenti DejaVu Sans).
+Esempio: `img/anim/upl-tribunali-o-kalsa.gif`. Il disegno usa Pillow e lo stesso layout dell'app; servono `ffmpeg` e, per Inter, la variabile `FONT_DIR` (altrimenti DejaVu Sans).
 
 ## Da fare
 
