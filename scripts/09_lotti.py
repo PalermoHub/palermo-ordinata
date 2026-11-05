@@ -10,7 +10,7 @@ Produce:
   data/lotti/edifici.json   { "e": [k | -1 per edificio, ordine "UPL concatenate" come civici.json/isolati.json],
                               "c": [rapporto di copertura 0-100 del lotto principale dell'edificio | -1, stesso ordine],
                               "cav": [posizioni in "e" degli edifici a cavallo], "lu": { "<k>": posizione UPL } per i lotti con edifici }
-  data/lotti/upl-<u>.json   { "<k>": [foglio, particella, m2, anelli] } per i lotti con edifici della UPL u (anelli in dm dall'angolo
+  data/lotti/upl-<u>.json   { "<k>": [foglio, particella, m2, anelli, cop, nt, cav] } per i lotti con edifici della UPL u (anelli in dm dall'angolo
                             SW della citta', y verso nord, semplificati SIMPLIFY m); UPL del lotto = quella della maggioranza dei suoi edifici
 Uso: PROJ_DATA=~/micromamba/envs/qgis/share/proj ~/micromamba/envs/qgis/bin/python 09_lotti.py [percorso/gpkg]
 Poi: python verifica_lotti.py
@@ -118,7 +118,7 @@ for k, u in lu.items():
     k = int(k)
     rr = anelli(lm.geometry.values[k])
     if rr:
-        per_upl.setdefault(u, {})[str(k)] = [foglio[k], parc[k], int(round(L.m2.iloc[k])), rr]
+        per_upl.setdefault(u, {})[str(k)] = [foglio[k], parc[k], int(round(L.m2.iloc[k])), rr, int(L.cop.iloc[k]), int(L.nt.iloc[k]), int(L.cav.iloc[k])]
 for f_ in os.listdir(DIR):
     if f_.startswith("upl-"):
         os.remove(os.path.join(DIR, f_))

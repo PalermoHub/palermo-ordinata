@@ -103,6 +103,11 @@
     } else citta.items.forEach(b => { b.cls[3] = SENZA_LOTTO; });
   }
 
+  /* proprieta' per la scheda, nella stessa forma di quelle dei tile; n = edifici per cui e' il lotto principale */
+  function propsLotto(k, g, n) {
+    return { k, foglio: g.foglio, Paricella: g.particella, m2: g.m2, cop: g.cop || 0, n, nt: g.nt || n, lib: 0, cav: g.cav || 0 };
+  }
+
   /* ---------- vista Ordinata dei lotti ----------
      items: edifici del livello (z, X, Y, ocx, ocy, ow, oh, area); lotto: Int32Array (lotto principale di ogni edificio o -1);
      anelliDi(k) -> {m2, anelli:[Float64Array in dm, y nord]} | null. Ritorna, per zona, i gruppi da disporre:
@@ -155,7 +160,7 @@
     if (cacheAnelli.has(k)) return cacheAnelli.get(k);
     const u = dati && dati.lu[String(k)], f = u !== undefined && perUpl.get(u);
     const v = f && f[String(k)];
-    const r = v ? { foglio: v[0], particella: v[1], m2: v[2], anelli: v[3].map(a => Float64Array.from(a)) } : null;
+    const r = v ? { foglio: v[0], particella: v[1], m2: v[2], anelli: v[3].map(a => Float64Array.from(a)), cop: v[4] || 0, nt: v[5] || 0, cav: v[6] || 0 } : null;
     if (r) cacheAnelli.set(k, r);
     return r;
   }
@@ -218,7 +223,7 @@
     return { pos, w, h, anelliBlocco };
   }
 
-  const Lotti = { CLASSI, CLASSI_EDIFICI, classiItems, gruppi, posiziona, anelliSync, caricaGeometrie, lottoDiItems, nascosto, statFiltrate, applica, classiAccese, classe, scheda, carica, pronto: () => !!dati, membri, selezionaMembri, anelli, layoutLotto };
+  const Lotti = { CLASSI, CLASSI_EDIFICI, classiItems, propsLotto, gruppi, posiziona, anelliSync, caricaGeometrie, lottoDiItems, nascosto, statFiltrate, applica, classiAccese, classe, scheda, carica, pronto: () => !!dati, membri, selezionaMembri, anelli, layoutLotto };
   if (typeof module !== 'undefined' && module.exports) module.exports = Lotti;
   else root.Lotti = Lotti;
 })(typeof window !== 'undefined' ? window : globalThis);

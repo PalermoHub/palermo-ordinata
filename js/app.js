@@ -423,6 +423,13 @@ function apriSchedaLotto(k, props) {
 function chiudiSchedaLotto() {
   if (S.lottoSel === null && $('scheda-lotto').hidden) return;
   S.lottoSel = null; lottoProps = null; $('scheda-lotto').hidden = true; if (LM) LM.seleziona(null);
+  if (R && S.citta && S.vista === 'sorted' && S.layout && S.layout.lotti) R.disegna();                     // toglie l'evidenziazione dal canvas
+}
+/* scheda di un lotto scelto con un clic nella vista «Ordina per lotti» (stessi dati e stessa scheda della Mappa) */
+function apriSchedaLottoOrd(c) {
+  const g = Lotti.anelliSync(c.k);
+  if (!g) return;
+  apriSchedaLotto(c.k, Lotti.propsLotto(c.k, g, c.ids.length)); R.disegna();
 }
 /* doppio clic su un lotto (o «Vedi il lotto»): vista Ordinata del solo lotto, con il contorno della particella e i suoi edifici
    nelle posizioni reali; riusa il meccanismo di «fuoco» degli isolati (S.isoFocus con S.isoTipo === 'lotto') */
@@ -470,11 +477,13 @@ function layoutOrdLotti(it) {
   const L = Blocchi.disponi(S.citta.zone, perZona, { margine: 4000, cittaH: S.index.h });
   const r = Lotti.posiziona(gz.flat(), L.pos, it.length, it);
   L.blocchi.forEach((b, z) => { b.testo = `${S.citta.zone[z].name} · ${NUM.format(gz[z].filter(g => g.k >= 0).length)} lotti`; });
-  return { pos: r.pos, blocchi: L.blocchi, w: L.w, h: L.h, sposta: L.sposta, lotti: r.contorni, reale: true };
+  const lottoDiItem = new Int32Array(it.length).fill(-1);                  // edificio -> contorno del suo lotto (per il clic)
+  r.contorni.forEach((c, j) => { if (c.k >= 0) for (const i of c.ids) lottoDiItem[i] = j; });
+  return { pos: r.pos, blocchi: L.blocchi, w: L.w, h: L.h, sposta: L.sposta, lotti: r.contorni, lottoDiItem, reale: true };
 }
 async function impostaOrdLotti(on, vai = true) {
   const sw = $('ord-lotti');
-  if (!on) { S.ordLotti = false; S.lottiOrd = null; sw.checked = false; ricalcola(); scriviHash(); return; }
+  if (!on) { chiudiSchedaLotto(); S.ordLotti = false; S.lottiOrd = null; sw.checked = false; ricalcola(); scriviHash(); return; }
   if (!S.citta) return;
   try {
     mostra('Caricamento dei lotti…');
@@ -660,6 +669,11 @@ function fineGesto(e) {
       const p = pos(e);
       if (era.touch && doppioTap(p.x, p.y)) { nascondiTip(); doppioOrdinata(p); return; }
       if (era.touch) mostraTip(p.x, p.y, e.clientX, e.clientY);
+      if (S.layout && S.layout.lotti && S.isoFocus === null) {                    // Ordina per lotti: un clic su un lotto apre la sua scheda
+        const c = R.lottoIn(p.x, p.y);
+        if (c && c.k >= 0) { apriSchedaLottoOrd(c); return; }
+        if (S.lottoSel !== null) chiudiSchedaLotto();
+      }
       seleziona(R.zonaIn(p.x, p.y), false);
     }
   } else gesto = { tipo: 'pan', ...(() => { const v = S.views.sorted, [q] = [...ptr.values()]; return { x: q.x, y: q.y, tx: v.tx, ty: v.ty }; })(), mosso: true };
@@ -899,6 +913,7 @@ function collegaInterfaccia() {
 function resetTutto() {
   if (!S.citta || S.anim) return;
   S.spente.clear(); S.sel = null;
+  chiudiSchedaLotto();
   if (S.lotti) {                                                                // anche i lotti tornano allo stato iniziale: filtro per classe, edifici sui lotti, scheda e selezione
     S.lottiOff.clear(); S.edifici = true; $('lotti-edifici').checked = true; S.lottoHover = null; LM.evidenzia(null);
     chiudiSchedaLotto(); ricalcolaStatLotti(S.citta); sincronizzaLotti();

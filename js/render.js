@@ -203,6 +203,23 @@
       return root.Isolati.hit((x - v.W / 2) / v.world + v.cx, (y - v.H / 2) / v.world + v.cy);
     }
 
+    /* lotto (contorno di S.layout.lotti) sotto il punto (x, y) in px CSS nella vista Ordinata dei lotti: prima l'edificio colpito, poi il contorno */
+    function lottoIn(x, y) {
+      if (!S.layout || !S.layout.lotti || S.t < 0.5) return null;
+      const i = hit(x, y);
+      if (i >= 0 && S.layout.lottoDiItem) { const j = S.layout.lottoDiItem[i]; if (j >= 0) return S.layout.lotti[j]; }
+      const vs = S.views.sorted, sx = (x - vs.tx) / vs.k, sy = (y - vs.ty) / vs.k;
+      for (const c of S.layout.lotti) {
+        if (c.k < 0 || !c.vis || sx < c.x || sx > c.x + c.w || sy < c.y || sy > c.y + c.h) continue;
+        let dentro = false;                                                                        // pari-dispari su tutti gli anelli
+        for (const r of c.anelli) for (let a = 0, b = r.length - 2; a < r.length; b = a, a += 2) {
+          if (((r[a + 1] > sy) !== (r[b + 1] > sy)) && (sx < (r[b] - r[a]) * (sy - r[a + 1]) / (r[b + 1] - r[a + 1]) + r[a])) dentro = !dentro;
+        }
+        if (dentro) return c;
+      }
+      return null;
+    }
+
     function proietta(m) { const v = B.vista(); return [(m[0] - v.cx) * v.world + v.W / 2, (m[1] - v.cy) * v.world + v.H / 2]; }
 
     function disegnaConfini(v, alfa) {
@@ -281,6 +298,17 @@
       ctx.save(); ctx.globalAlpha = alfa; ctx.lineJoin = 'round';
       ctx.fillStyle = 'rgba(245,166,35,.08)'; ctx.fill(p, 'evenodd');
       ctx.strokeStyle = stile('--accent'); ctx.globalAlpha = alfa * 0.7; ctx.lineWidth = 1.2 * dpr; ctx.stroke(p);
+      const sel = S.lottoSel !== null ? S.layout.lotti.find(c => c.k === S.lottoSel) : null;          // lotto della scheda aperta: contorno spesso
+      if (sel && sel.anelli.length) {
+        const q = new Path2D();
+        for (const a of sel.anelli) {
+          for (let i = 0; i < a.length; i += 2) { const X = (vs.tx + a[i] * k) * dpr, Y = (vs.ty + a[i + 1] * k) * dpr; i ? q.lineTo(X, Y) : q.moveTo(X, Y); }
+          q.closePath();
+        }
+        ctx.globalAlpha = alfa; ctx.fillStyle = 'rgba(245,166,35,.16)'; ctx.fill(q, 'evenodd');
+        ctx.strokeStyle = 'rgba(0,0,0,.7)'; ctx.lineWidth = 6 * dpr; ctx.stroke(q);
+        ctx.strokeStyle = stile('--accent'); ctx.lineWidth = 3 * dpr; ctx.stroke(q);
+      }
       ctx.restore();
     }
 
@@ -354,7 +382,7 @@
       return c;
     }
 
-    return { carica, ricolora, riquadro, disegna, matrice, hit, zonaIn, isolatoIn, adattaOrdinata, kMappa, octx, COLORI, KEY, LAT };
+    return { carica, ricolora, riquadro, disegna, matrice, hit, zonaIn, isolatoIn, lottoIn, adattaOrdinata, kMappa, octx, COLORI, KEY, LAT };
   }
   root.Render = { crea, COLORI, KEY };
 })(typeof window !== 'undefined' ? window : globalThis);
