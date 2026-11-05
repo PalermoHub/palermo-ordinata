@@ -35,15 +35,18 @@ conteggio = meta["tilestats"]["layers"][0]["count"]
 controlla("particelle nel PMTiles", conteggio == n, f"{conteggio} / {n}")
 
 campi = meta["vector_layers"][0]["fields"]
-controlla("campi attesi nei tile", all(c in campi for c in ["k", "foglio", "Paricella", "m2", "cop", "n", "lib", "cav"]), str(sorted(campi)))
+controlla("campi attesi nei tile", all(c in campi for c in ["k", "foglio", "Paricella", "m2", "cop", "n", "nt", "lib", "cav"]), str(sorted(campi)))
 
 # file di lavoro scritto da 09_lotti.py, da cui tippecanoe ha costruito il PMTiles
 lav = os.path.join(WORK, "lotti.geojsonl")
 visti, ko, campione = set(), 0, set(random.Random(1).sample(range(n), 20))
+stat = {"nt": 0, "lib": 0, "strada": 0, "strada_lib": 0}
 with open(lav) as f:
     for riga in f:
         p = json.loads(riga)["properties"]
         visti.add(p["k"])
+        stat["nt"] += p["nt"] > 0; stat["lib"] += p["lib"] == 1
+        strada = str(p["Paricella"]).upper().startswith("STRADA"); stat["strada"] += strada; stat["strada_lib"] += strada and p["lib"] == 1
         if p["k"] in campione:
             r = lotti.iloc[p["k"]]
             ko += str(r.foglio) != str(p["foglio"]) or str(r.Paricella) != str(p["Paricella"])
@@ -54,10 +57,11 @@ ed = json.load(open(os.path.join(OUT, "lotti", "edifici.json")))
 index = json.load(open(os.path.join(OUT, "index.json")))
 totale = sum(z["n"] for z in index["zone"] if z["level"] == "upl")
 controlla("edifici.json: un elemento per edificio", len(ed["e"]) == totale, f"{len(ed['e'])} / {totale}")
+controlla("edifici.json: copertura del lotto per ogni edificio", len(ed["c"]) == totale and all((c < 0) == (e < 0) for c, e in zip(ed["c"], ed["e"])))
 senza = sum(1 for v in ed["e"] if v < 0)
 controlla("lu: ogni lotto con edifici ha una UPL", all(str(v) in ed["lu"] for v in set(ed["e"]) if v >= 0))
 con_ed = len(ed["lu"])
 aree = np.array([r[2] for u in range(55) if os.path.exists(os.path.join(OUT, "lotti", f"upl-{u}.json")) for r in json.load(open(os.path.join(OUT, "lotti", f"upl-{u}.json"))).values()])
 controlla("anelli per ogni lotto con edifici", len(aree) == con_ed, f"{len(aree)} / {con_ed}")
-print(f"lotti: {n}; con edifici: {con_ed}; liberi: {n - con_ed}; edifici senza lotto: {senza}; a cavallo: {len(ed['cav'])}; mediana m² (con edifici): {int(np.median(aree)) if len(aree) else 0}")
+print(f"lotti: {n}; con edifici (anche a cavallo): {stat['nt']}; liberi: {stat['lib']}, di cui stradali {stat['strada_lib']}; particelle stradali: {stat['strada']}; lotti con edifici principali (vista del lotto): {con_ed}; edifici senza lotto: {senza}; a cavallo: {len(ed['cav'])}; mediana m² (con edifici): {int(np.median(aree)) if len(aree) else 0}")
 sys.exit(0 if ok else 1)

@@ -397,7 +397,11 @@ kbd{display:inline-block;min-width:18px;padding:1px 5px;border:1px solid var(--p
 /* con i lotti accesi gli edifici si attenuano in Mappa, cosi' il colore dei lotti resta leggibile */
 body.lotti-on:not(.vista-ordinata) #cv{opacity:.38}
 .lotti-leg-titolo{font-weight:600;margin-bottom:3px;color:var(--text)}
-.lotti-leg-riga{display:flex;align-items:center;gap:6px;line-height:1.5}
+.lotti-leg-riga{display:flex;align-items:center;gap:6px;line-height:1.5;width:100%;padding:1px 2px;border:none;background:none;color:inherit;font:inherit;text-align:left}
+button.lotti-leg-riga{cursor:pointer;border-radius:4px}
+button.lotti-leg-riga:hover{background:var(--hover-bg)}
+.lotti-leg-riga.off{opacity:.38}
+.lotti-leg-riga.off i{filter:grayscale(1)}
 .lotti-leg-riga i{width:14px;height:10px;border-radius:2px;display:inline-block;border:1px solid rgba(255,255,255,.25)}
 #moran-leg[hidden]{display:none}
 .mo-leg{display:flex;align-items:center;gap:8px;font-size:11.5px;padding:2px 0}

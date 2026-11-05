@@ -15,11 +15,13 @@
     { max: 60, nome: '40–60%', colore: '#0d9488' },
     { max: 100, nome: 'Oltre il 60%', colore: '#115e59' },
   ];
+  const CLASSI_EDIFICI = CLASSI.concat([{ max: 100, nome: 'Senza particella', colore: '#5a6070' }]);   // per colorare gli EDIFICI: classe del loro lotto principale
+  const SENZA_LOTTO = CLASSI_EDIFICI.length - 1;
   let dati = null, promessa = null, perms = null;
   const perUpl = new Map();
 
-  function classe(cop, n) {
-    if (!n) return 0;
+  function classe(cop, nt) {                                       // nt = edifici che contano nel lotto, anche a cavallo
+    if (!nt) return 0;
     for (let i = 1; i < CLASSI.length - 1; i++) if (cop <= CLASSI[i].max) return i;
     return CLASSI.length - 1;
   }
@@ -30,10 +32,11 @@
       ['Superficie', `${NUM.format(p.m2)} m²`],
       ['Coperto (circa)', `${NUM.format(coperto)} m²`],
       ['Rapporto di copertura', `${p.cop} %`],
-      ['Edifici', NUM.format(p.n)],
+      ['Edifici', NUM.format(p.n) + (p.nt > p.n ? ` (+${NUM.format(p.nt - p.n)} a cavallo)` : '')],
     ];
     const avvisi = [];
-    if (p.lib || !p.n) avvisi.push('Lotto libero: nessun edificio sopra.');
+    if (p.lib) avvisi.push('Lotto libero: nessun edificio sopra.');
+    else if (!p.n) avvisi.push('Il costruito su questo lotto appartiene a edifici a cavallo di altre particelle.');
     if (/^STRADA/i.test(String(p.Paricella))) avvisi.push('Particella stradale (strada pubblica), non un lotto edificabile.');
     if (p.cav) avvisi.push('Contiene o confina con edifici a cavallo di più particelle.');
     return { titolo: `Particella ${p.foglio}/${p.Paricella}`, zona: zona || '', righe, avvisi };
@@ -56,14 +59,46 @@
     return { lista, set };
   }
 
+  async function permLivello(livello) {                           // permutazione livello -> indice UPL concatenato (null per upl)
+    if (livello === 'upl') return null;
+    if (!perms) { const r = await fetch('data/perm-livelli.json'); if (!r.ok) throw new Error('perm-livelli.json: HTTP ' + r.status); perms = await r.json(); }
+    return perms[livello];
+  }
+
   async function membri(k, livello, nItems) {
     if (!dati) await carica();
-    let perm = null;
-    if (livello !== 'upl') {
-      if (!perms) { const r = await fetch('data/perm-livelli.json'); if (!r.ok) throw new Error('perm-livelli.json: HTTP ' + r.status); perms = await r.json(); }
-      perm = perms[livello];
-    }
-    return selezionaMembri(dati.e, k, perm, nItems);
+    return selezionaMembri(dati.e, k, await permLivello(livello), nItems);
+  }
+
+  /* classe (indice di CLASSI_EDIFICI) del lotto principale di ogni edificio del livello; c = copertura 0-100 del lotto principale o -1 */
+  function classiItems(c, perm, nItems) {
+    const out = new Uint8Array(nItems);
+    for (let i = 0; i < nItems; i++) { const v = c[perm ? perm[i] : i]; out[i] = v < 0 ? SENZA_LOTTO : classe(v, 1); }
+    return out;
+  }
+
+  /* {n:[...], m2:[...]} per zona e classe, nella stessa forma di zone[i].uso/alt/sup */
+  function statClassi(items, nZone, nClassi) {
+    const st = Array.from({ length: nZone }, () => ({ n: new Array(nClassi).fill(0), m2: new Array(nClassi).fill(0) }));
+    for (const b of items) { const c = b.cls[3]; st[b.z].n[c]++; st[b.z].m2[c] += b.area; }
+    return st;
+  }
+
+  /* assegna agli edifici del livello caricato la classe del loro lotto (cls[3]) e le quote per zona (zona.lot);
+     senza i dati dei lotti tutti gli edifici sono «senza particella» */
+  async function applica(citta, livello) {
+    if (dati) {
+      const cl = classiItems(dati.c, await permLivello(livello), citta.items.length);
+      citta.items.forEach((b, i) => { b.cls[3] = cl[i]; });
+    } else citta.items.forEach(b => { b.cls[3] = SENZA_LOTTO; });
+    const st = statClassi(citta.items, citta.zone.length, CLASSI_EDIFICI.length);
+    citta.zone.forEach((z, i) => { z.lot = st[i]; });
+  }
+
+  /* classi dei lotti (0..4) da mostrare sulla mappa dato l'insieme delle classi spente; null = tutte */
+  function classiAccese(spente) {
+    if (!spente || !spente.size) return null;
+    return CLASSI.map((_, i) => i).filter(i => !spente.has(i));
   }
 
   async function anelli(k) {
@@ -108,7 +143,7 @@
     return { pos, w, h, anelliBlocco };
   }
 
-  const Lotti = { CLASSI, classe, scheda, carica, pronto: () => !!dati, membri, selezionaMembri, anelli, layoutLotto };
+  const Lotti = { CLASSI, CLASSI_EDIFICI, classiItems, statClassi, applica, classiAccese, classe, scheda, carica, pronto: () => !!dati, membri, selezionaMembri, anelli, layoutLotto };
   if (typeof module !== 'undefined' && module.exports) module.exports = Lotti;
   else root.Lotti = Lotti;
 })(typeof window !== 'undefined' ? window : globalThis);

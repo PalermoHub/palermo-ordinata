@@ -1,6 +1,6 @@
 /* Caricamento di tutte le zone di un livello in un'unica lista di edifici, in coordinate cittadine.
    Citta.carica(livello, index) -> Promise<{zone, items, perZona}>
-   item = {z, cls:[uso,alt,sup], area, h, ang, lw,lh,lcx,lcy, ow,oh,ocx,ocy, cx,cy, X,Y, mx,my, rings, path:null}
+   item = {z, cls:[uso,alt,sup,lotto], area, h, ang, lw,lh,lcx,lcy, ow,oh,ocx,ocy, cx,cy, X,Y, mx,my, rings, path:null}
    rings/path: coordinate RELATIVE AL CENTROIDE dell'edificio (y verso il basso); cx,cy: centroide locale alla zona (y verso il basso); X,Y: dm dall'angolo SW della citta' (y verso nord);
    mx,my: Mercator normalizzato. Il Path2D si costruisce alla prima richiesta (Citta.path). */
 (function (root) {
@@ -18,7 +18,7 @@
         if (u < u0) u0 = u; if (u > u1) u1 = u; if (v < v0) v0 = v; if (v > v1) v1 = v;
       }
     }
-    return { z, cls: [b[0], b[1], b[2]], area: b[3], h: b[4] / D, ang,
+    return { z, cls: [b[0], b[1], b[2], 5], area: b[3], h: b[4] / D, ang,
              lw: u1 - u0, lh: v1 - v0, lcx: (u0 + u1) / 2, lcy: (v0 + v1) / 2,
              ow: x1 - x0, oh: y1 - y0, ocx: (x0 + x1) / 2, ocy: (y0 + y1) / 2,
              cx: b[8], cy: -b[9], X: zona.ox + b[8], Y: zona.oy + b[9], mx: 0, my: 0, rings, path: null };

@@ -47,6 +47,7 @@ async function caricaLivello(liv) {
     S.citta = null; S.sel = null; S.conf = null; S.zonaHover = null; nascondiTip();
     const c = await Citta.carica(liv, S.index);
     preparaZone(c);
+    await Lotti.applica(c, liv);                                      // classe del lotto di ogni edificio (se i dati dei lotti non sono ancora stati caricati: «senza particella»)
     S.citta = c; S.livello = liv; S.isoFocus = null; S.isoTipo = 'isolato'; S.lottoAnelli = null; S.isoSet = null; S.isoItems = [];     // gli indici degli edifici cambiano con il livello
     Indirizzi.carica(liv, S.index);                                   // indirizzi per il tooltip: in background, il tooltip li mostra appena pronti
     const a = Float64Array.from(c.items, b => b.area).sort(); S.mediana = a.length ? Math.round(a[a.length >> 1]) : 0;
@@ -198,7 +199,7 @@ function soloClasse(cls) {                                          // dalle bar
 }
 function azzeraFiltro() { if (!S.spente.size) return; S.spente.clear(); applicaFiltro(); }
 function applicaFiltro() {
-  scriviHash(); nascondiTip(); R.ricolora(); Pannello.aggiorna(S, azioni); R.disegna();
+  sincronizzaLotti(); scriviHash(); nascondiTip(); R.ricolora(); Pannello.aggiorna(S, azioni); R.disegna();
   if (S.liveZoom) inquadraVisibili();
 }
 /* porta alla zona di un qualunque livello: cambia livello se serve, poi la seleziona (usata dal cerca) */
@@ -292,7 +293,7 @@ function leggiHash() {
   const x = (p.get('x') || '').split(',').filter(Boolean).map(Number).filter(n => Number.isInteger(n) && n >= 0 && n < 32);
   const tab = p.get('p');
   return { l: LIVELLI.includes(l) ? l : 'circ', v: v === 'sorted' ? 'sorted' : 'map', z: p.get('z'), c: cam,
-    k: ['uso', 'alt', 'sup'].includes(k) ? k : 'alt', x, g: p.get('g') === '1', s: p.get('s') !== '0', i: p.get('i') === '1', o: p.get('o') === '1', q: p.get('q') === '1', lot: /^\d{1,7}$/.test(p.get('lot') || '') ? Number(p.get('lot')) : null, m: ['alt', 'cop', 'den'].includes(p.get('m')) ? p.get('m') : null, a: /^\w{1,30}$/.test(p.get('a') || '') ? p.get('a') : null,
+    k: ['uso', 'alt', 'sup', 'lot'].includes(k) ? k : 'alt', x, g: p.get('g') === '1', s: p.get('s') !== '0', i: p.get('i') === '1', o: p.get('o') === '1', q: p.get('q') === '1', lot: /^\d{1,7}$/.test(p.get('lot') || '') ? Number(p.get('lot')) : null, m: ['alt', 'cop', 'den'].includes(p.get('m')) ? p.get('m') : null, a: /^\w{1,30}$/.test(p.get('a') || '') ? p.get('a') : null,
     t: p.get('t') === 'light' || p.get('t') === 'dark' ? p.get('t') : null,
     p: tab && document.querySelector(`.tab-hdr[data-tab="${CSS.escape(tab)}"]`) ? tab : 'zone' };
 }
@@ -448,15 +449,38 @@ async function apriLotto(k, subito = false) {
 }
 
 /* ---------- lotti catastali (particelle): livello vettoriale sulla Mappa ---------- */
+/* i filtri della legenda per classe di lotto: modalita' di colore «lot» (cls[3] degli edifici); la stessa S.spente comanda
+   sia gli edifici e il pannello sia il layer dei lotti, quindi i tre restano sempre allineati */
+function sincronizzaLotti() {
+  if (!LM) return;
+  const lot = S.lotti && S.colore === 'lot';
+  LM.filtra(lot ? Lotti.classiAccese(S.spente) : null);
+  if (S.lotti) LM.legenda($('lotti-leg'), { spente: lot ? S.spente : new Set(), clic: clicLegendaLotti });
+}
+async function clicLegendaLotti(i, e) {
+  if (S.colore !== 'lot') cambiaColore('lot');                      // la legenda dei lotti comanda gli stessi filtri: passa alla modalita' lot (azzera i filtri precedenti)
+  if (e.shiftKey || e.ctrlKey || e.metaKey) filtra(i); else soloClasse(i);
+}
+async function sceltaColore(c) {
+  if (c === 'lot' && !S.lotti) await impostaLotti(true);           // colorare per lotto accende anche il livello Lotti
+  if (c === 'lot' && !S.lotti) return;                              // caricamento fallito
+  cambiaColore(c);
+}
+
 async function impostaLotti(on) {
   const sw = $('lotti'), leg = $('lotti-leg');
-  if (!on) { S.lotti = false; chiudiSchedaLotto(); LM.accendi(false); sw.checked = false; leg.hidden = true; document.body.classList.remove('lotti-on'); scriviHash(); return; }
+  if (!on) {
+    S.lotti = false; chiudiSchedaLotto(); LM.accendi(false); sw.checked = false; leg.hidden = true; document.body.classList.remove('lotti-on');
+    if (S.colore === 'lot') cambiaColore('alt'); else scriviHash();                  // senza il livello non ha senso colorare gli edifici per lotto
+    return;
+  }
   try {
     if (S.moran) await impostaMoran(false);
     if (S.isolati) await impostaIsolati(false);
     if (!Lotti.pronto()) { mostra('Caricamento lotti…'); await Lotti.carica(); nascondi(); }
-    LM.accendi(true); LM.legenda(leg); leg.hidden = false; document.body.classList.add('lotti-on');
-    S.lotti = true; sw.checked = true; scriviHash();
+    await Lotti.applica(S.citta, S.livello);                           // ora i dati ci sono: classe del lotto per ogni edificio
+    LM.accendi(true); leg.hidden = false; document.body.classList.add('lotti-on');
+    S.lotti = true; sw.checked = true; sincronizzaLotti(); ricalcola(); scriviHash();
   } catch (err) {
     console.error(err); nascondi(); S.lotti = false; LM.accendi(false); sw.checked = false; leg.hidden = true; document.body.classList.remove('lotti-on');
     avvisa(`Caricamento dei lotti non riuscito (${err.message}).`);
@@ -617,7 +641,7 @@ async function cambiaLivello(liv) {
 }
 function cambiaColore(c) {
   if (c === S.colore) return;
-  S.colore = c; S.spente.clear(); aggiornaUI(); scriviHash();
+  S.colore = c; S.spente.clear(); aggiornaUI(); scriviHash(); sincronizzaLotti();
   if (S.raggruppa) ricalcola(); else { R.ricolora(); Pannello.aggiorna(S, azioni); R.disegna(); }
 }
 function applicaTema(t, salva) {
@@ -748,7 +772,7 @@ function collegaInterfaccia() {
     switch (b.dataset.action) {
       case 'vista': vaiA(b.dataset.v); break;
       case 'livello': cambiaLivello(b.dataset.l); break;
-      case 'colore': cambiaColore(b.dataset.c); break;
+      case 'colore': sceltaColore(b.dataset.c); break;
       case 'home': vaiHome(); break;
       case 'zoom-piu': zoomBottone(1.5); break;
       case 'zoom-meno': zoomBottone(1 / 1.5); break;
@@ -759,7 +783,7 @@ function collegaInterfaccia() {
     }
   }));
   document.querySelectorAll('#seg-livello button, #seg-livello-mini button').forEach(b => b.addEventListener('click', () => cambiaLivello(b.dataset.l)));
-  document.querySelectorAll('#seg-colore button').forEach(b => b.addEventListener('click', () => cambiaColore(b.dataset.c)));
+  document.querySelectorAll('#seg-colore button').forEach(b => b.addEventListener('click', () => sceltaColore(b.dataset.c)));
   $('raggruppa').addEventListener('change', e => { S.raggruppa = e.target.checked; scriviHash(); ricalcola(); });
   $('lato').addEventListener('change', e => { S.lato = e.target.checked; scriviHash(); ricalcola(); });
   try { S.liveZoom = localStorage.getItem('live-zoom') !== '0'; } catch (_) {}
@@ -840,9 +864,11 @@ function ridimensiona() {
     S.tema = h.t || temaIniziale(); document.documentElement.dataset.theme = S.tema;
     S.dpr = window.devicePixelRatio || 1; S.W = $('map').clientWidth || innerWidth; S.H = $('map').clientHeight || innerHeight;
     S.index = await (await fetch('data/index.json')).json();
+    Render.COLORI.lot = Lotti.CLASSI_EDIFICI.map(c => c.colore); Render.KEY.lot = 3;     // quarta modalita' di colore: classe di copertura del lotto dell'edificio
+    S.index.classi.lot = Lotti.CLASSI_EDIFICI.map(c => ({ nome: c.nome }));
     S.gamma = Geo.convergenza(S.index);
     B = Base.crea($('map'), S.tema);
-    LM = LottiMappa.crea(B.map);
+    LM = LottiMappa.crea(B.map, err => { console.error(err); avvisa('I tile dei lotti non sono raggiungibili (serve un server con supporto Range): il livello viene spento.'); impostaLotti(false); });
     R = Render.crea(S, B, cv, ov);
     const disegnaOrig = R.disegna;                                              // la X segue il blocco selezionato a ogni ridisegno
     R.disegna = (...args) => { const r = disegnaOrig.apply(R, args); posizionaX(); return r; };
@@ -862,7 +888,7 @@ function ridimensiona() {
     S.vista = h.v; S.lin = S.t = h.v === 'sorted' ? 1 : 0;
     impostaInterazione(); aggiornaUI(); R.disegna(); scriviHash();
     if (h.m) { moranVar = h.m; await impostaMoran(true); if (h.c) applicaCamera(h.c); }
-    else if (h.q || h.lot !== null) {
+    else if (h.q || h.lot !== null || h.k === 'lot') {
       await impostaLotti(true);
       if (h.lot !== null) await apriLotto(h.lot, true);                          // link con un lotto: si riapre direttamente la sua vista Ordinata
     }

@@ -6,7 +6,7 @@
   const NUM = new Intl.NumberFormat('it-IT', { useGrouping: 'always' });
   const fmt = n => NUM.format(n);
   const f1 = x => x.toFixed(1).replace('.', ',');
-  const NOME_COL = { alt: 'altezza', sup: 'superficie', uso: 'uso' };
+  const NOME_COL = { alt: 'altezza', sup: 'superficie', uso: 'uso', lot: 'copertura del lotto' };
   
   function el(tag, cls, testo) { const e = document.createElement(tag); if (cls) e.className = cls; if (testo !== undefined) e.textContent = testo; return e; }
 
@@ -117,7 +117,7 @@
     { k: 'median_m2', titolo: 'Mediana', val: z => z.median_m2, fmt: v => `${fmt(v)} m²` },
   ];
   const PRIME = 6;
-  const KEY = { uso: 0, alt: 1, sup: 2 };
+  const KEY = { uso: 0, alt: 1, sup: 2, lot: 3 };                    // posizione della classe in item.cls (3 = classe del lotto, vedi Lotti.applica)
 
   function perZona(S) {                                           // valori per zona ricalcolati sulle sole classi attive (null = nessun filtro)
     if (!S.spente.size) return null;

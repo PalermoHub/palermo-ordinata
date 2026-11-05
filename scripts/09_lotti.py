@@ -6,8 +6,9 @@ sovrapposizione maggiore; l'edificio e' "a cavallo" se conta in piu' particelle 
 
 Produce:
   data/lotti.pmtiles        tile z12-17 (layer "particelle"), proprieta':
-                            k (indice nel gpkg), foglio, Paricella, m2, cop (0-100, troncato), n (edifici), lib (1 = senza edifici), cav (1 = tocca edifici a cavallo)
+                            k (indice nel gpkg), foglio, Paricella, m2, cop (0-100, troncato), n (edifici con questo lotto come principale), nt (edifici che contano nel lotto, anche a cavallo), lib (1 = nt = 0), cav (1 = tocca edifici a cavallo)
   data/lotti/edifici.json   { "e": [k | -1 per edificio, ordine "UPL concatenate" come civici.json/isolati.json],
+                              "c": [rapporto di copertura 0-100 del lotto principale dell'edificio | -1, stesso ordine],
                               "cav": [posizioni in "e" degli edifici a cavallo], "lu": { "<k>": posizione UPL } per i lotti con edifici }
   data/lotti/upl-<u>.json   { "<k>": [foglio, particella, m2, anelli] } per i lotti con edifici della UPL u (anelli in dm dall'angolo
                             SW della citta', y verso nord, semplificati SIMPLIFY m); UPL del lotto = quella della maggioranza dei suoi edifici
@@ -60,7 +61,7 @@ parc = lotti["Paricella"].astype(str).values
 with open(lav, "w") as f:
     for k, g in enumerate(lotti.geometry.values):
         r = L.iloc[k]
-        p = {"k": k, "foglio": foglio[k], "Paricella": parc[k], "m2": int(round(r.m2)), "cop": int(r.cop), "n": int(r.n),
+        p = {"k": k, "foglio": foglio[k], "Paricella": parc[k], "m2": int(round(r.m2)), "cop": int(r.cop), "n": int(r.n), "nt": int(r.nt),
              "lib": int(r.lib), "cav": int(r.cav)}
         f.write(json.dumps({"type": "Feature", "properties": p, "geometry": json.loads(shapely.to_geojson(g))}) + "\n")
 pm = os.path.join(OUT, "lotti.pmtiles")
@@ -72,10 +73,13 @@ off, tot = [], 0
 for z in upl:
     off.append(tot); tot += z["n"]
 e = [-1] * tot
+c_cop = [-1] * tot       # rapporto di copertura (0-100) del lotto principale di ogni edificio, -1 se senza lotto
 cav = []
 pos = [off[int(u)] + int(bi) for u, bi in zip(b.u.values, b.bi.values)]
 for p_, lot, c in zip(pos, E.lotto.values, E.cav.values):
     e[p_] = int(lot)
+    if lot >= 0:
+        c_cop[p_] = int(L.cop.iloc[int(lot)])
     if c:
         cav.append(p_)
 cav.sort()
@@ -84,7 +88,7 @@ cav.sort()
 d = b.assign(lotto=E.lotto.values)
 d = d[d.lotto >= 0]
 lu = d.groupby("lotto").u.agg(lambda s: int(s.mode().iloc[0])).to_dict()
-json.dump({"e": e, "cav": cav, "lu": {str(int(k)): int(v) for k, v in lu.items()}},
+json.dump({"e": e, "c": c_cop, "cav": cav, "lu": {str(int(k)): int(v) for k, v in lu.items()}},
           open(os.path.join(DIR, "edifici.json"), "w"), separators=(",", ":"))
 
 

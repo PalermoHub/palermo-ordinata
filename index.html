@@ -80,6 +80,7 @@
       <button type="button" data-c="alt" title="Colora gli edifici per altezza">Altezza</button>
       <button type="button" data-c="sup" title="Colora gli edifici per superficie in pianta">Superficie</button>
       <button type="button" data-c="uso" title="Colora gli edifici per destinazione d'uso">Uso</button>
+      <button type="button" data-c="lot" title="Colora gli edifici per rapporto di copertura del loro lotto catastale e accende il livello Lotti">Lotti</button>
     </div>
     <div id="legenda"></div>
     <hr class="panel-sep">
@@ -247,8 +248,8 @@
       <ul class="guida">
         <li><b>Fonte:</b> le <b>particelle catastali</b> di Palermo (Agenzia delle Entrate, comune G273), aggiornamento di <b>settembre 2026</b>: 135.038 particelle, solo foglio e numero. La superficie è calcolata dalla geometria (UTM 32N), non è quella catastale.</li>
         <li><b>Rapporto di copertura:</b> superficie coperta dagli edifici divisa per la superficie del lotto. Un edificio conta in una particella se almeno il <b>10% della sua impronta</b> ci cade dentro; il suo <b>lotto principale</b> è quello con la sovrapposizione maggiore. Il rapporto è troncato a 100%.</li>
-        <li><b>Edifici a cavallo:</b> 41.740 edifici (37%) contano in più di una particella. Il catasto frammenta molto più della banca dati degli edifici, quindi la scheda lo segnala ma non cambia i conteggi.</li>
-        <li><b>Lotti senza edifici:</b> 80.150 particelle su 135.038. Non sono tutte «aree libere»: 4.105 sono particelle stradali (<i>STRADA…</i>) e molte altre sono campagna, aree verdi o pertinenze dove la banca dati degli edifici non ha poligoni. Sui lotti con edifici (54.888) la mediana è 407 m².</li>
+        <li><b>Edifici a cavallo:</b> 41.740 edifici (37%) contano in più di una particella. Il catasto frammenta molto più della banca dati degli edifici: la scheda lo segnala e scrive «n (+m a cavallo)». Il colore del lotto tiene conto di tutti gli edifici che ci contano; la vista del lotto mostra solo quelli per cui è il lotto principale.</li>
+        <li><b>Lotti senza edifici:</b> 60.665 particelle su 135.038 (nessun edificio ci conta per almeno il 10%); 74.373 ne hanno almeno uno. Non sono tutte «aree libere»: 4.105 particelle sono stradali (<i>STRADA…</i>, 2.465 tra i «senza edifici») e molte altre sono campagna, aree verdi o pertinenze dove la banca dati degli edifici non ha poligoni. I lotti che sono il lotto principale di almeno un edificio sono 54.888, con mediana 407 m².</li>
         <li><b>Approssimazioni:</b> gli edifici vengono dalla CTC 2006 e dalla banca dati globale, il catasto è di settembre 2026: le due fonti non coincidono al metro, un edificio nuovo o demolito falsa il rapporto del suo lotto. 212 edifici non cadono in nessuna particella.</li>
         <li>Il livello si legge dal file <code>data/lotti.pmtiles</code> (tile vettoriali, ricalcolati da <code>scripts/09_lotti.py</code>); i contorni per la vista del lotto stanno in <code>data/lotti/</code>, un file per UPL, scaricati solo quando servono.</li>
       </ul>
@@ -399,6 +400,7 @@
         <li>Accendi <b>Lotti</b> nella legenda (solo vista Mappa; si spegne se accendi Isolati o LISA). Le particelle compaiono da zoom 12 e gli edifici si attenuano per lasciarle leggere.</li>
         <li>Il colore dice <b>quanta parte del lotto è costruita</b>: grigio = nessun edificio, poi dal verde chiaro al verde scuro fino a oltre il 60%.</li>
         <li><b>Passa il mouse</b> su un lotto per evidenziarlo; <b>clicca</b> per la scheda: superficie, coperto, rapporto di copertura, numero di edifici e avvisi (lotto libero, edifici a cavallo, particella stradale).</li>
+        <li><b>La legenda dei lotti è un filtro</b>, uguale a quella degli edifici: <b>clic su una classe</b> per vedere solo quella (lotti, edifici e statistiche del pannello si ricalcolano insieme), secondo clic per rimettere tutto; <b>Maiusc+clic</b> accende o spegne una classe senza isolarla. Anche il pulsante <b>Lotti</b> in «Colora per» colora gli edifici con la classe del loro lotto e accende il livello. Il link condiviso conserva il filtro (<code>&amp;k=lot&amp;x=…</code>).</li>
       </ul>
       <figure><button type="button" class="gal" data-gal="img/guida/lotto-ordinata.png" data-cap="Doppio clic su un lotto: il contorno della particella con i suoi edifici nelle posizioni reali" title="Ingrandisci: Doppio clic su un lotto: il contorno della particella con i suoi edifici nelle posizioni reali"><img src="img/guida/lotto-ordinata.png" alt="La vista Ordinata del singolo lotto, con il contorno della particella e i suoi edifici" loading="lazy"></button><figcaption>Doppio clic su un lotto: il contorno della particella con i suoi edifici nelle posizioni reali</figcaption></figure>
       <ul class="guida">
