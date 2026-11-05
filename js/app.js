@@ -455,7 +455,9 @@ function sincronizzaLotti() {
   if (!LM) return;
   const lot = S.lotti && S.colore === 'lot';
   LM.filtra(lot ? Lotti.classiAccese(S.spente) : null);
-  if (S.lotti) LM.legenda($('lotti-leg'), { spente: lot ? S.spente : new Set(), clic: clicLegendaLotti });
+  const leg = $('lotti-leg');                                       // una sola legenda alla volta: in modalita' lot vale quella principale (stesse classi e conteggi)
+  leg.hidden = !S.lotti || lot;
+  if (S.lotti && !lot) LM.legenda(leg, { spente: new Set(), clic: clicLegendaLotti });
 }
 async function clicLegendaLotti(i, e) {
   if (S.colore !== 'lot') cambiaColore('lot');                      // la legenda dei lotti comanda gli stessi filtri: passa alla modalita' lot (azzera i filtri precedenti)

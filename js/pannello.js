@@ -201,14 +201,15 @@
     const m = S.colore, nomi = S.index.classi[m], col = S.colori[m];
     const d = S.isoFocus !== null ? datiIso(S) : S.sel === null ? somma(S.citta.zone, m) : S.citta.zone[S.sel][m];
     nomi.forEach((c, i) => {
-      if (!d.n[i]) return;
+      const lottiLiberi = m === 'lot' && i === 0;                    // «Senza edifici»: nessun edificio da contare, ma la classe va filtrabile (lotti non costruiti)
+      if (!d.n[i] && !lottiLiberi) return;
       const spenta = S.spente.has(i);
       const r = el('button', 'row' + (spenta ? ' off' : '')), sw = el('i'); sw.style.background = col[i];
       const sola = !spenta && S.spente.size === nomi.length - 1;     // logica inversa: il click isola la classe, secondo click = tutte
       r.type = 'button'; r.setAttribute('aria-pressed', String(!spenta));
       r.title = sola ? 'Mostra tutte le classi (Maiusc+click: nascondi solo questa)' : 'Mostra solo questa classe (Maiusc+click: accendi/spegni senza isolare)';
       r.addEventListener('click', e => (e.shiftKey || e.ctrlKey || e.metaKey) ? az.filtra(i) : az.solo(i));
-      r.append(sw, el('span', '', c.nome), el('b', '', fmt(d.n[i]))); L.append(r);
+      r.append(sw, el('span', '', c.nome), el('b', '', lottiLiberi ? '—' : fmt(d.n[i]))); L.append(r);
     });
     if (S.spente.size) {
       const b = el('button', 'azzera', 'Mostra tutte le classi'); b.type = 'button'; b.title = 'Riattiva tutte le classi nascoste';
