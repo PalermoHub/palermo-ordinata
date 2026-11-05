@@ -275,8 +275,8 @@ body:not(.side-panel-open) #cerca-bar{left:50%}
   #stato{top:var(--head-h);bottom:var(--tab-h)}
 
   /* pulsanti mappa: colonna a destra, sotto l'header */
-  #view-dial{top:calc(var(--head-h) + 10px);left:10px;right:auto}
-  .dial-items.open{max-height:calc(100vh - var(--head-h) - var(--tab-h) - 70px)}
+  #view-dial{top:calc(var(--head-h) + 60px);left:10px;right:auto}
+  .dial-items.open{max-height:calc(100vh - var(--head-h) - var(--tab-h) - 120px)}
   .dial-fab,.dial-item{width:44px;height:44px}
   #panel-toggle,#panel-close-mobile{display:none}
   #torna-mappa,body.side-panel-open #torna-mappa{position:fixed;top:calc(var(--head-h) + 10px) !important;left:auto !important;right:10px !important}
