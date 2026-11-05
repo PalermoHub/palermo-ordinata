@@ -274,6 +274,7 @@ function costruisciHash() {
 function scriviHash() {
   if (!S.citta) return;
   history.replaceState(null, '', '#' + costruisciHash());
+  if (window.parent !== window) window.parent.postMessage({ type: 'palermo-ordinata', hash: costruisciHash() }, '*');   // opzionale: la pagina ospite puo' specchiare l'URL
 }
 
 /* ---------- tooltip ---------- */
@@ -499,9 +500,9 @@ function posizionaX() {
   const l = Math.min(v.tx + (b.x + b.w) * v.k + 20, Wd - 56), t = Math.min(Math.max(v.ty + b.y * v.k, 12), S.H - S.insetB - 56) + (mobile() ? document.getElementById('cv').offsetTop : 0);
   x.style.right = 'auto'; x.style.left = Math.max(l, 12) + 'px'; x.style.top = t + 'px';
 }
-/* Condivisione: la pagina ospite (palermohub.opendatasicilia.it) non puo' inoltrare l'hash all'iframe, quindi si condivide
-   l'URL diretto dell'app con l'hash completo dello stato corrente. Menu di link + copia: niente SDK, niente tracker, funziona anche con iframe senza allow="web-share". */
-const URL_APP = 'https://palermohub.github.io/palermo-ordinata/';
+/* Condivisione: l'app gira in iframe su palermohub.opendatasicilia.it, quindi si condivide l'URL della pagina ospite con lo stato
+   nell'hash; la pagina ospite lo gira all'iframe (vedi docs/embed-iframe.md). Menu di link + copia: niente SDK, niente tracker, funziona anche con iframe senza allow="web-share". */
+const URL_APP = 'https://palermohub.opendatasicilia.it/palermo-ordinata.html';
 const urlCondivisione = () => { scriviHash(); return URL_APP + '#' + costruisciHash(); };
 const TESTO_CONDIVISIONE = 'Palermo, ordinata: gli edifici zona per zona, dal più grande al più piccolo';
 function linkSocial(r) {
