@@ -77,22 +77,30 @@
     return out;
   }
 
-  /* {n:[...], m2:[...]} per zona e classe, nella stessa forma di zone[i].uso/alt/sup */
-  function statClassi(items, nZone, nClassi) {
-    const st = Array.from({ length: nZone }, () => ({ n: new Array(nClassi).fill(0), m2: new Array(nClassi).fill(0) }));
-    for (const b of items) { const c = b.cls[3]; st[b.z].n[c]++; st[b.z].m2[c] += b.area; }
+  /* filtro per classe di lotto, indipendente dal colore: l'edificio e' nascosto se la classe del suo lotto principale e' spenta;
+     con un filtro attivo gli edifici senza particella non stanno dentro nessun lotto, quindi si nascondono */
+  function nascosto(b, off) {
+    return off.size > 0 && (b.cls[3] === SENZA_LOTTO || off.has(b.cls[3]));
+  }
+
+  /* quote per zona e classe ({uso, alt, sup}: {n:[...], m2:[...]}) dei soli edifici visibili con il filtro dei lotti `off`;
+     nClassi = numero di classi di uso, altezza, superficie */
+  function statFiltrate(items, nZone, nClassi, off) {
+    const KEY = { uso: 0, alt: 1, sup: 2 };
+    const st = Array.from({ length: nZone }, () => Object.fromEntries(Object.keys(KEY).map(m => [m, { n: new Array(nClassi[m]).fill(0), m2: new Array(nClassi[m]).fill(0) }])));
+    for (const b of items) {
+      if (nascosto(b, off)) continue;
+      for (const m in KEY) { const q = st[b.z][m], c = b.cls[KEY[m]]; q.n[c]++; q.m2[c] += b.area; }
+    }
     return st;
   }
 
-  /* assegna agli edifici del livello caricato la classe del loro lotto (cls[3]) e le quote per zona (zona.lot);
-     senza i dati dei lotti tutti gli edifici sono «senza particella» */
+  /* assegna agli edifici del livello caricato la classe del loro lotto (cls[3]); senza i dati dei lotti sono «senza particella» */
   async function applica(citta, livello) {
     if (dati) {
       const cl = classiItems(dati.c, await permLivello(livello), citta.items.length);
       citta.items.forEach((b, i) => { b.cls[3] = cl[i]; });
     } else citta.items.forEach(b => { b.cls[3] = SENZA_LOTTO; });
-    const st = statClassi(citta.items, citta.zone.length, CLASSI_EDIFICI.length);
-    citta.zone.forEach((z, i) => { z.lot = st[i]; });
   }
 
   /* classi dei lotti (0..4) da mostrare sulla mappa dato l'insieme delle classi spente; null = tutte */
@@ -143,7 +151,7 @@
     return { pos, w, h, anelliBlocco };
   }
 
-  const Lotti = { CLASSI, CLASSI_EDIFICI, classiItems, statClassi, applica, classiAccese, classe, scheda, carica, pronto: () => !!dati, membri, selezionaMembri, anelli, layoutLotto };
+  const Lotti = { CLASSI, CLASSI_EDIFICI, classiItems, nascosto, statFiltrate, applica, classiAccese, classe, scheda, carica, pronto: () => !!dati, membri, selezionaMembri, anelli, layoutLotto };
   if (typeof module !== 'undefined' && module.exports) module.exports = Lotti;
   else root.Lotti = Lotti;
 })(typeof window !== 'undefined' ? window : globalThis);

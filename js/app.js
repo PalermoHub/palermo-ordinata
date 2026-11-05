@@ -11,7 +11,7 @@ const NUM = new Intl.NumberFormat('it-IT', { useGrouping: 'always' });
 
 const S = {
   index: null, citta: null, layout: null, livello: 'circ', vista: 'map', colore: 'alt', raggruppa: false, lato: true,
-  sel: null, conf: null, isola: false, isolati: false, lotti: false, edifici: true, lottoSel: null, lottoHover: null, moran: null, isoHover: -1, isoSel: null, isoFocus: null, isoTipo: 'isolato', lottoAnelli: null, lottoBBox: null, lottoProps: null, isoSet: null, isoItems: [], isoTitolo: '', isoZona: '', spente: new Set(), liveZoom: true, zonaHover: null, views: { sorted: { k: 1, tx: 0, ty: 0 } }, fitOrd: true,
+  sel: null, conf: null, isola: false, isolati: false, lotti: false, lottiOff: new Set(), edifici: true, lottoSel: null, lottoHover: null, moran: null, isoHover: -1, isoSel: null, isoFocus: null, isoTipo: 'isolato', lottoAnelli: null, lottoBBox: null, lottoProps: null, isoSet: null, isoItems: [], isoTitolo: '', isoZona: '', spente: new Set(), liveZoom: true, zonaHover: null, views: { sorted: { k: 1, tx: 0, ty: 0 } }, fitOrd: true,
   t: 0, lin: 0, anim: false, caricando: false, coda: [], dpr: 1, W: 0, H: 0, inset: 0, pw: 400, insetB: 0, gamma: 0, mediana: 0, tema: 'dark',
   colori: Render.COLORI, hover: -1,
 };
@@ -48,6 +48,7 @@ async function caricaLivello(liv) {
     const c = await Citta.carica(liv, S.index);
     preparaZone(c);
     await Lotti.applica(c, liv);                                      // classe del lotto di ogni edificio (se i dati dei lotti non sono ancora stati caricati: «senza particella»)
+    ricalcolaStatLotti(c);                                            // quote per zona sui soli edifici dei lotti non filtrati
     S.citta = c; S.livello = liv; S.isoFocus = null; S.isoTipo = 'isolato'; S.lottoAnelli = null; S.isoSet = null; S.isoItems = [];     // gli indici degli edifici cambiano con il livello
     Indirizzi.carica(liv, S.index);                                   // indirizzi per il tooltip: in background, il tooltip li mostra appena pronti
     const a = Float64Array.from(c.items, b => b.area).sort(); S.mediana = a.length ? Math.round(a[a.length >> 1]) : 0;
@@ -199,7 +200,7 @@ function soloClasse(cls) {                                          // dalle bar
 }
 function azzeraFiltro() { if (!S.spente.size) return; S.spente.clear(); applicaFiltro(); }
 function applicaFiltro() {
-  sincronizzaLotti(); scriviHash(); nascondiTip(); R.ricolora(); Pannello.aggiorna(S, azioni); R.disegna();
+  scriviHash(); nascondiTip(); R.ricolora(); Pannello.aggiorna(S, azioni); R.disegna();
   if (S.liveZoom) inquadraVisibili();
 }
 /* porta alla zona di un qualunque livello: cambia livello se serve, poi la seleziona (usata dal cerca) */
@@ -293,7 +294,7 @@ function leggiHash() {
   const x = (p.get('x') || '').split(',').filter(Boolean).map(Number).filter(n => Number.isInteger(n) && n >= 0 && n < 32);
   const tab = p.get('p');
   return { l: LIVELLI.includes(l) ? l : 'circ', v: v === 'sorted' ? 'sorted' : 'map', z: p.get('z'), c: cam,
-    k: ['uso', 'alt', 'sup', 'lot'].includes(k) ? k : 'alt', x, g: p.get('g') === '1', s: p.get('s') !== '0', i: p.get('i') === '1', o: p.get('o') === '1', q: p.get('q') === '1', e: p.get('e') !== '0', lot: /^\d{1,7}$/.test(p.get('lot') || '') ? Number(p.get('lot')) : null, m: ['alt', 'cop', 'den'].includes(p.get('m')) ? p.get('m') : null, a: /^\w{1,30}$/.test(p.get('a') || '') ? p.get('a') : null,
+    k: ['uso', 'alt', 'sup'].includes(k) ? k : 'alt', x, g: p.get('g') === '1', s: p.get('s') !== '0', i: p.get('i') === '1', o: p.get('o') === '1', q: p.get('q') === '1', e: p.get('e') !== '0', y: (p.get('y') || '').split(',').filter(Boolean).map(Number).filter(n => Number.isInteger(n) && n >= 0 && n < 5), lot: /^\d{1,7}$/.test(p.get('lot') || '') ? Number(p.get('lot')) : null, m: ['alt', 'cop', 'den'].includes(p.get('m')) ? p.get('m') : null, a: /^\w{1,30}$/.test(p.get('a') || '') ? p.get('a') : null,
     t: p.get('t') === 'light' || p.get('t') === 'dark' ? p.get('t') : null,
     p: tab && document.querySelector(`.tab-hdr[data-tab="${CSS.escape(tab)}"]`) ? tab : 'zone' };
 }
@@ -305,7 +306,7 @@ function costruisciHash() {
   if (S.vista === 'map' && B) { const m = B.map, ce = m.getCenter(); c = `&c=${m.getZoom().toFixed(2)}/${ce.lat.toFixed(4)}/${ce.lng.toFixed(4)}`; }
   const tab = document.querySelector('.tab-hdr.active'), p = tab && tab.dataset.tab !== 'zone' ? `&p=${tab.dataset.tab}` : '';
   const x = S.spente.size ? `&x=${[...S.spente].sort((a, b) => a - b).join(',')}` : '';
-  return `l=${S.livello}&v=${S.vista}${z}${c}&k=${S.colore}${x}${S.raggruppa ? '&g=1' : ''}${S.lato ? '' : '&s=0'}${S.isola ? '&i=1' : ''}${S.isolati ? '&o=1' : ''}${S.lotti ? '&q=1' : ''}${S.lotti && !S.edifici ? '&e=0' : ''}${S.moran ? `&m=${S.moran}` : ''}${S.isoFocus !== null ? (S.isoTipo === 'lotto' ? `&lot=${S.isoFocus}` : `&a=${encodeURIComponent(Isolati.lista[S.isoFocus].idag)}`) : ''}&t=${S.tema}${p}`;
+  return `l=${S.livello}&v=${S.vista}${z}${c}&k=${S.colore}${x}${S.raggruppa ? '&g=1' : ''}${S.lato ? '' : '&s=0'}${S.isola ? '&i=1' : ''}${S.isolati ? '&o=1' : ''}${S.lotti ? '&q=1' : ''}${S.lotti && !S.edifici ? '&e=0' : ''}${S.lotti && S.lottiOff.size ? `&y=${[...S.lottiOff].sort().join(',')}` : ''}${S.moran ? `&m=${S.moran}` : ''}${S.isoFocus !== null ? (S.isoTipo === 'lotto' ? `&lot=${S.isoFocus}` : `&a=${encodeURIComponent(Isolati.lista[S.isoFocus].idag)}`) : ''}&t=${S.tema}${p}`;
 }
 function scriviHash() {
   if (!S.citta) return;
@@ -449,24 +450,37 @@ async function apriLotto(k, subito = false) {
 }
 
 /* ---------- lotti catastali (particelle): livello vettoriale sulla Mappa ---------- */
-/* i filtri della legenda per classe di lotto: modalita' di colore «lot» (cls[3] degli edifici); la stessa S.spente comanda
-   sia gli edifici e il pannello sia il layer dei lotti, quindi i tre restano sempre allineati */
+/* Filtro per classe di lotto (S.lottiOff = classi spente): e' indipendente dal colore. Agisce sul layer dei lotti, sugli edifici
+   dentro i lotti rimasti (che mantengono i colori di altezza/uso/superficie) e sulle quote del pannello. */
+function contaClassiLotti() {
+  const n = [0, 0, 0, 0, 0, 0];
+  if (S.citta) for (const b of S.citta.items) n[b.cls[3]]++;
+  return n;
+}
 function sincronizzaLotti() {
   if (!LM) return;
-  const lot = S.lotti && S.colore === 'lot';
-  LM.filtra(lot ? Lotti.classiAccese(S.spente) : null);
-  const leg = $('lotti-leg');                                       // una sola legenda alla volta: in modalita' lot vale quella principale (stesse classi e conteggi)
-  leg.hidden = !S.lotti || lot;
-  if (S.lotti && !lot) LM.legenda(leg, { spente: new Set(), clic: clicLegendaLotti });
+  LM.filtra(S.lotti ? Lotti.classiAccese(S.lottiOff) : null);
+  const leg = $('lotti-leg'); leg.hidden = !S.lotti;
+  if (S.lotti) LM.legenda(leg, { spente: S.lottiOff, conteggi: contaClassiLotti(), clic: clicLegendaLotti });
 }
-async function clicLegendaLotti(i, e) {
-  if (S.colore !== 'lot') cambiaColore('lot');                      // la legenda dei lotti comanda gli stessi filtri: passa alla modalita' lot (azzera i filtri precedenti)
-  if (e.shiftKey || e.ctrlKey || e.metaKey) filtra(i); else soloClasse(i);
+/* quote per zona (uso, altezza, superficie) sui soli edifici visibili: gli originali restano in zona._orig */
+function ricalcolaStatLotti(c) {
+  if (!c || !S.index) return;
+  const nc = { uso: S.index.classi.uso.length, alt: S.index.classi.alt.length, sup: S.index.classi.sup.length };
+  const st = S.lotti && S.lottiOff.size ? Lotti.statFiltrate(c.items, c.zone.length, nc, S.lottiOff) : null;
+  c.zone.forEach((z, i) => { z._orig = z._orig || { uso: z.uso, alt: z.alt, sup: z.sup }; for (const m of ['uso', 'alt', 'sup']) z[m] = st ? st[i][m] : z._orig[m]; });
 }
-async function sceltaColore(c) {
-  if (c === 'lot' && !S.lotti) await impostaLotti(true);           // colorare per lotto accende anche il livello Lotti
-  if (c === 'lot' && !S.lotti) return;                              // caricamento fallito
-  cambiaColore(c);
+function applicaFiltroLotti() {
+  if (!S.citta) return;
+  nascondiTip(); ricalcolaStatLotti(S.citta); sincronizzaLotti(); scriviHash();
+  R.ricolora(); Pannello.aggiorna(S, azioni); R.disegna();
+  if (S.liveZoom) inquadraVisibili();
+}
+function clicLegendaLotti(i, e) {                                   // come la legenda degli edifici: clic = solo questa classe (secondo clic = tutte), Maiusc+clic = accendi/spegni
+  const tutte = Lotti.CLASSI.map((_, j) => j);
+  if (e.shiftKey || e.ctrlKey || e.metaKey) { if (S.lottiOff.has(i)) S.lottiOff.delete(i); else S.lottiOff.add(i); }
+  else S.lottiOff = (!S.lottiOff.has(i) && S.lottiOff.size === tutte.length - 1) ? new Set() : new Set(tutte.filter(j => j !== i));
+  applicaFiltroLotti();
 }
 
 async function impostaLotti(on) {
@@ -474,7 +488,9 @@ async function impostaLotti(on) {
   if (!on) {
     S.lotti = false; chiudiSchedaLotto(); LM.accendi(false); sw.checked = false; leg.hidden = true; $('lotti-edifici-lab').hidden = true; document.body.classList.remove('lotti-on');
     if (R && S.citta) R.disegna();
-    if (S.colore === 'lot') cambiaColore('alt'); else scriviHash();                  // senza il livello non ha senso colorare gli edifici per lotto
+    S.lottiOff.clear(); S.edifici = true;
+    if (S.citta) { ricalcolaStatLotti(S.citta); R.ricolora(); Pannello.aggiorna(S, azioni); R.disegna(); }
+    scriviHash();
     return;
   }
   try {
@@ -483,7 +499,7 @@ async function impostaLotti(on) {
     if (!Lotti.pronto()) { mostra('Caricamento lotti…'); await Lotti.carica(); nascondi(); }
     await Lotti.applica(S.citta, S.livello);                           // ora i dati ci sono: classe del lotto per ogni edificio
     LM.accendi(true); leg.hidden = false; $('lotti-edifici-lab').hidden = false; $('lotti-edifici').checked = S.edifici; document.body.classList.add('lotti-on');
-    S.lotti = true; sw.checked = true; sincronizzaLotti(); ricalcola(); scriviHash();
+    S.lotti = true; sw.checked = true; ricalcolaStatLotti(S.citta); sincronizzaLotti(); ricalcola(); scriviHash();
   } catch (err) {
     console.error(err); nascondi(); S.lotti = false; LM.accendi(false); sw.checked = false; leg.hidden = true; document.body.classList.remove('lotti-on');
     avvisa(`Caricamento dei lotti non riuscito (${err.message}).`);
@@ -644,7 +660,7 @@ async function cambiaLivello(liv) {
 }
 function cambiaColore(c) {
   if (c === S.colore) return;
-  S.colore = c; S.spente.clear(); aggiornaUI(); scriviHash(); sincronizzaLotti();
+  S.colore = c; S.spente.clear(); aggiornaUI(); scriviHash();
   if (S.raggruppa) ricalcola(); else { R.ricolora(); Pannello.aggiorna(S, azioni); R.disegna(); }
 }
 function applicaTema(t, salva) {
@@ -775,7 +791,7 @@ function collegaInterfaccia() {
     switch (b.dataset.action) {
       case 'vista': vaiA(b.dataset.v); break;
       case 'livello': cambiaLivello(b.dataset.l); break;
-      case 'colore': sceltaColore(b.dataset.c); break;
+      case 'colore': cambiaColore(b.dataset.c); break;
       case 'home': vaiHome(); break;
       case 'zoom-piu': zoomBottone(1.5); break;
       case 'zoom-meno': zoomBottone(1 / 1.5); break;
@@ -786,7 +802,7 @@ function collegaInterfaccia() {
     }
   }));
   document.querySelectorAll('#seg-livello button, #seg-livello-mini button').forEach(b => b.addEventListener('click', () => cambiaLivello(b.dataset.l)));
-  document.querySelectorAll('#seg-colore button').forEach(b => b.addEventListener('click', () => sceltaColore(b.dataset.c)));
+  document.querySelectorAll('#seg-colore button').forEach(b => b.addEventListener('click', () => cambiaColore(b.dataset.c)));
   $('raggruppa').addEventListener('change', e => { S.raggruppa = e.target.checked; scriviHash(); ricalcola(); });
   $('lato').addEventListener('change', e => { S.lato = e.target.checked; scriviHash(); ricalcola(); });
   try { S.liveZoom = localStorage.getItem('live-zoom') !== '0'; } catch (_) {}
@@ -868,8 +884,6 @@ function ridimensiona() {
     S.tema = h.t || temaIniziale(); document.documentElement.dataset.theme = S.tema;
     S.dpr = window.devicePixelRatio || 1; S.W = $('map').clientWidth || innerWidth; S.H = $('map').clientHeight || innerHeight;
     S.index = await (await fetch('data/index.json')).json();
-    Render.COLORI.lot = Lotti.CLASSI_EDIFICI.map(c => c.colore); Render.KEY.lot = 3;     // quarta modalita' di colore: classe di copertura del lotto dell'edificio
-    S.index.classi.lot = Lotti.CLASSI_EDIFICI.map(c => ({ nome: c.nome }));
     S.gamma = Geo.convergenza(S.index);
     B = Base.crea($('map'), S.tema);
     LM = LottiMappa.crea(B.map, err => { console.error(err); avvisa('I tile dei lotti non sono raggiungibili (serve un server con supporto Range): il livello viene spento.'); impostaLotti(false); });
@@ -893,7 +907,8 @@ function ridimensiona() {
     S.vista = h.v; S.lin = S.t = h.v === 'sorted' ? 1 : 0;
     impostaInterazione(); aggiornaUI(); R.disegna(); scriviHash();
     if (h.m) { moranVar = h.m; await impostaMoran(true); if (h.c) applicaCamera(h.c); }
-    else if (h.q || h.lot !== null || h.k === 'lot') {
+    else if (h.q || h.lot !== null) {
+      S.lottiOff = new Set(h.y);
       await impostaLotti(true);
       if (h.lot !== null) await apriLotto(h.lot, true);                          // link con un lotto: si riapre direttamente la sua vista Ordinata
     }

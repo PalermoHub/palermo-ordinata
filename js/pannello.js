@@ -6,7 +6,7 @@
   const NUM = new Intl.NumberFormat('it-IT', { useGrouping: 'always' });
   const fmt = n => NUM.format(n);
   const f1 = x => x.toFixed(1).replace('.', ',');
-  const NOME_COL = { alt: 'altezza', sup: 'superficie', uso: 'uso', lot: 'copertura del lotto' };
+  const NOME_COL = { alt: 'altezza', sup: 'superficie', uso: 'uso' };
   
   function el(tag, cls, testo) { const e = document.createElement(tag); if (cls) e.className = cls; if (testo !== undefined) e.textContent = testo; return e; }
 
@@ -117,12 +117,12 @@
     { k: 'median_m2', titolo: 'Mediana', val: z => z.median_m2, fmt: v => `${fmt(v)} m²` },
   ];
   const PRIME = 6;
-  const KEY = { uso: 0, alt: 1, sup: 2, lot: 3 };                    // posizione della classe in item.cls (3 = classe del lotto, vedi Lotti.applica)
+  const KEY = { uso: 0, alt: 1, sup: 2 };
 
   function perZona(S) {                                           // valori per zona ricalcolati sulle sole classi attive (null = nessun filtro)
-    if (!S.spente.size) return null;
+    if (!S.spente.size && !(S.lotti && S.lottiOff.size)) return null;
     const k = KEY[S.colore], Z = S.citta.zone, n = Z.map(() => 0), imp = Z.map(() => 0), ar = Z.map(() => []);
-    for (const b of S.citta.items) if (!S.spente.has(b.cls[k])) { n[b.z]++; imp[b.z] += b.area; ar[b.z].push(b.area); }
+    for (const b of S.citta.items) if (!S.spente.has(b.cls[k]) && !(S.lotti && Lotti.nascosto(b, S.lottiOff))) { n[b.z]++; imp[b.z] += b.area; ar[b.z].push(b.area); }
     return Z.map((z, i) => ({ n: n[i], footprint_m2: imp[i], median_m2: Math.round(mediana(ar[i])) }));
   }
   const aperte = new Set();                                       // classifiche espanse ("Mostra tutte")
@@ -201,15 +201,14 @@
     const m = S.colore, nomi = S.index.classi[m], col = S.colori[m];
     const d = S.isoFocus !== null ? datiIso(S) : S.sel === null ? somma(S.citta.zone, m) : S.citta.zone[S.sel][m];
     nomi.forEach((c, i) => {
-      const lottiLiberi = m === 'lot' && i === 0;                    // «Senza edifici»: nessun edificio da contare, ma la classe va filtrabile (lotti non costruiti)
-      if (!d.n[i] && !lottiLiberi) return;
+      if (!d.n[i]) return;
       const spenta = S.spente.has(i);
       const r = el('button', 'row' + (spenta ? ' off' : '')), sw = el('i'); sw.style.background = col[i];
       const sola = !spenta && S.spente.size === nomi.length - 1;     // logica inversa: il click isola la classe, secondo click = tutte
       r.type = 'button'; r.setAttribute('aria-pressed', String(!spenta));
       r.title = sola ? 'Mostra tutte le classi (Maiusc+click: nascondi solo questa)' : 'Mostra solo questa classe (Maiusc+click: accendi/spegni senza isolare)';
       r.addEventListener('click', e => (e.shiftKey || e.ctrlKey || e.metaKey) ? az.filtra(i) : az.solo(i));
-      r.append(sw, el('span', '', c.nome), el('b', '', lottiLiberi ? '—' : fmt(d.n[i]))); L.append(r);
+      r.append(sw, el('span', '', c.nome), el('b', '', fmt(d.n[i]))); L.append(r);
     });
     if (S.spente.size) {
       const b = el('button', 'azzera', 'Mostra tutte le classi'); b.type = 'button'; b.title = 'Riattiva tutte le classi nascoste';
@@ -228,7 +227,7 @@
   function metricheZona(S, zi) {
     const k = KEY[S.colore], z = S.citta.zone[zi], ar = [], h = [];
     let imp = 0;
-    for (const b of S.citta.items) if (b.z === zi && !S.spente.has(b.cls[k])) { ar.push(b.area); imp += b.area; if (b.cls[1] !== 6) h.push(b.h); }
+    for (const b of S.citta.items) if (b.z === zi && !S.spente.has(b.cls[k]) && !(S.lotti && Lotti.nascosto(b, S.lottiOff))) { ar.push(b.area); imp += b.area; if (b.cls[1] !== 6) h.push(b.h); }
     return { n: ar.length, imp, med: Math.round(mediana(ar)), alt: mediana(h), dens: ar.length / z.area_km2 };
   }
 

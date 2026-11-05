@@ -80,13 +80,16 @@
           const spenta = !!(filtro && filtro.spente.has(i));
           const r = document.createElement(filtro ? 'button' : 'div'); r.className = 'lotti-leg-riga' + (spenta ? ' off' : '');
           if (filtro) {
-            const sola = !spenta && filtro.spente.size === root.Lotti.CLASSI_EDIFICI.length - 1;   // stessa regola della legenda principale: tutte le altre spente
+            const sola = !spenta && filtro.spente.size === C.length - 1;   // stessa regola della legenda degli edifici: tutte le altre spente
             r.type = 'button'; r.setAttribute('aria-pressed', String(!spenta));
             r.title = sola ? 'Mostra tutte le classi (Maiusc+clic: nascondi solo questa)' : 'Mostra solo questa classe di lotti (Maiusc+clic: accendi/spegni senza isolare)';
             r.addEventListener('click', e => filtro.clic(i, e));
           }
           const s = document.createElement('i'); s.style.background = c.colore;
-          r.append(s, document.createTextNode(c.nome)); el.append(r);
+          const nome = document.createElement('span'); nome.textContent = c.nome;
+          r.append(s, nome);
+          if (filtro && filtro.conteggi) { const n = document.createElement('b'); n.textContent = i === 0 ? '—' : new Intl.NumberFormat('it-IT', { useGrouping: 'always' }).format(filtro.conteggi[i]); n.title = i === 0 ? 'Lotti senza edifici: nessun edificio da contare' : 'Edifici nei lotti di questa classe'; r.append(n); }
+          el.append(r);
         });
       },
     };

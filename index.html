@@ -80,7 +80,6 @@
       <button type="button" data-c="alt" title="Colora gli edifici per altezza">Altezza</button>
       <button type="button" data-c="sup" title="Colora gli edifici per superficie in pianta">Superficie</button>
       <button type="button" data-c="uso" title="Colora gli edifici per destinazione d'uso">Uso</button>
-      <button type="button" data-c="lot" title="Colora gli edifici per rapporto di copertura del loro lotto catastale e accende il livello Lotti">Lotti</button>
     </div>
     <div id="legenda"></div>
     <hr class="panel-sep">
@@ -401,7 +400,7 @@
         <li>Accendi <b>Lotti</b> nella legenda (solo vista Mappa; si spegne se accendi Isolati o LISA). Le particelle compaiono da zoom 12 (trasparenti) e gli edifici restano sopra, pieni, così si vede cosa sta dentro ogni lotto. L'interruttore <b>Edifici sui lotti</b> li spegne per vedere solo le particelle (<code>&amp;e=0</code> nel link).</li>
         <li>Il colore dice <b>quanta parte del lotto è costruita</b>: grigio = nessun edificio, poi dal verde chiaro al verde scuro fino a oltre il 60%.</li>
         <li><b>Passa il mouse</b> su un lotto per evidenziarlo; <b>clicca</b> per la scheda: superficie, coperto, rapporto di copertura, numero di edifici e avvisi (lotto libero, edifici a cavallo, particella stradale).</li>
-        <li><b>La legenda dei lotti è un filtro</b>, uguale a quella degli edifici: <b>clic su una classe</b> per vedere solo quella (lotti, edifici e statistiche del pannello si ricalcolano insieme), secondo clic per rimettere tutto; <b>Maiusc+clic</b> accende o spegne una classe senza isolarla. La riga <b>Senza edifici</b> isola i lotti non costruiti (nessun edificio da contare, quindi il pannello resta vuoto). Anche il pulsante <b>Lotti</b> in «Colora per» colora gli edifici con la classe del loro lotto e accende il livello. Il link condiviso conserva il filtro (<code>&amp;k=lot&amp;x=…</code>).</li>
+        <li><b>La legenda dei lotti è un filtro</b>, indipendente dal colore degli edifici: <b>clic su una classe</b> per vedere solo i lotti di quella classe e gli edifici che ci stanno dentro, che restano colorati per altezza, superficie o uso. Le statistiche e le classifiche del pannello si ricalcolano sui soli edifici rimasti. Secondo clic per rimettere tutto; <b>Maiusc+clic</b> accende o spegne una classe senza isolarla. Accanto a ogni classe c'è il numero di edifici; <b>Senza edifici</b> isola i lotti non costruiti (nessun edificio da contare, quindi il pannello resta vuoto). Il link condiviso conserva il filtro (<code>&amp;y=…</code>, le classi spente).</li>
       </ul>
       <figure><button type="button" class="gal" data-gal="img/guida/lotto-ordinata.png" data-cap="Doppio clic su un lotto: il contorno della particella con i suoi edifici nelle posizioni reali" title="Ingrandisci: Doppio clic su un lotto: il contorno della particella con i suoi edifici nelle posizioni reali"><img src="img/guida/lotto-ordinata.png" alt="La vista Ordinata del singolo lotto, con il contorno della particella e i suoi edifici" loading="lazy"></button><figcaption>Doppio clic su un lotto: il contorno della particella con i suoi edifici nelle posizioni reali</figcaption></figure>
       <ul class="guida">

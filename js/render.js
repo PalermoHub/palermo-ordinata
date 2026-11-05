@@ -46,8 +46,9 @@
     function ricolora() {
       const k = KEY[S.colore], ncl = COLORI[S.colore].length, tmp = Array.from({ length: ncl }, () => []);
       const it = S.citta.items, spente = S.spente, iso = S.isola && inFuoco(), foc = S.isoFocus !== null ? S.isoSet : null;
+      const lotOff = S.lotti && S.isoFocus === null && S.lottiOff.size ? S.lottiOff : null;      // filtro per classe di lotto (indipendente dal colore)
       VIS = new Uint8Array(n);                                                           // 0 = classe spenta dalla legenda (o edificio fuori dall'isolato in primo piano): non si disegna e non risponde al cursore
-      for (let i = 0; i < n; i++) { if (foc && !foc[i]) continue; if (iso && fuori(ZI[i])) continue; const c = it[i].cls[k]; if (spente.has(c)) continue; VIS[i] = 1; tmp[c].push(i); }
+      for (let i = 0; i < n; i++) { if (foc && !foc[i]) continue; if (iso && fuori(ZI[i])) continue; const c = it[i].cls[k]; if (spente.has(c) || (lotOff && root.Lotti.nascosto(it[i], lotOff))) continue; VIS[i] = 1; tmp[c].push(i); }
       PER = tmp.map(a => Int32Array.from(a));
     }
 
