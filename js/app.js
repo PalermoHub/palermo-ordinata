@@ -10,7 +10,7 @@ const LIVELLI = ['circ', 'quar', 'upl'];
 const NUM = new Intl.NumberFormat('it-IT', { useGrouping: 'always' });
 
 const S = {
-  index: null, citta: null, layout: null, livello: 'upl', vista: 'map', colore: 'alt', raggruppa: false, lato: true,
+  index: null, citta: null, layout: null, livello: 'circ', vista: 'map', colore: 'alt', raggruppa: false, lato: true,
   sel: null, conf: null, isola: false, spente: new Set(), liveZoom: true, zonaHover: null, views: { sorted: { k: 1, tx: 0, ty: 0 } }, fitOrd: true,
   t: 0, lin: 0, anim: false, caricando: false, coda: [], dpr: 1, W: 0, H: 0, inset: 0, pw: 400, insetB: 0, gamma: 0, mediana: 0, tema: 'dark',
   colori: Render.COLORI, hover: -1,
@@ -271,7 +271,7 @@ function leggiHash() {
   const k = p.get('k');
   const x = (p.get('x') || '').split(',').filter(Boolean).map(Number).filter(n => Number.isInteger(n) && n >= 0 && n < 32);
   const tab = p.get('p');
-  return { l: LIVELLI.includes(l) ? l : 'upl', v: v === 'sorted' ? 'sorted' : 'map', z: p.get('z'), c: cam,
+  return { l: LIVELLI.includes(l) ? l : 'circ', v: v === 'sorted' ? 'sorted' : 'map', z: p.get('z'), c: cam,
     k: ['uso', 'alt', 'sup'].includes(k) ? k : 'alt', x, g: p.get('g') === '1', s: p.get('s') !== '0', i: p.get('i') === '1',
     t: p.get('t') === 'light' || p.get('t') === 'dark' ? p.get('t') : null,
     p: tab && document.querySelector(`.tab-hdr[data-tab="${CSS.escape(tab)}"]`) ? tab : 'zone' };
