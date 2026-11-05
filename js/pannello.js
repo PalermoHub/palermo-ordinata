@@ -37,7 +37,7 @@
     const uso = cls ? S.index.classi.uso[iu].nome : 'n.d.';
     const notaUso = cls ? `${f1(usi[iu] / cls * 100)}% dei classificati (${f1(cls / tutti * 100)}% del totale)` : 'nessun edificio classificato';
     const nome = el('div', 'stat-nome'); nome.append(el('span', '', z ? z.name : 'Tutta Palermo'));
-    if (z) { const b = el('button', '', 'Mostra tutta la città'); b.type = 'button'; b.addEventListener('click', () => az.seleziona(null)); nome.append(b); }
+    if (z) { const b = el('button', '', 'Mostra tutta la città'); b.type = 'button'; b.title = 'Torna alla vista di tutta Palermo'; b.addEventListener('click', () => az.seleziona(null)); nome.append(b); }
     box.append(nome);
     const g = el('div', 'stat-grid');
     const carte = [
@@ -83,14 +83,14 @@
       const lista = el('div', 'ranking-list');
       for (const r of vis) {
         const riga = el('div', 'rank-row' + (S.sel === r.i ? ' on' : '')), b = el('button', 'rank-label', r.z.name);
-        b.type = 'button'; b.title = r.z.name; b.addEventListener('click', () => az.seleziona(r.i));
+        b.type = 'button'; b.title = 'Seleziona ' + r.z.name; b.addEventListener('click', () => az.seleziona(r.i));
         const tr = el('span', 'rank-track'), f = el('i', 'rank-fill' + (S.conf && r.i === S.conf.b ? ' b' : '')); f.style.width = (r.v / max * 100) + '%'; tr.append(f);
         riga.append(el('span', 'rank-num', String(righe.indexOf(r) + 1)), b, tr, el('span', 'rank-value', m.fmt(r.v)), el('span', 'rank-pct', m.quota ? `${f1(r.v / tot * 100)}%` : ''));
         lista.append(riga);
       }
       card.append(lista);
       if (righe.length > PRIME && !S.conf) {
-        const t = el('button', 'rank-more', aperte.has(m.k) ? 'Mostra meno' : `Mostra tutte (${righe.length})`); t.type = 'button';
+        const t = el('button', 'rank-more', aperte.has(m.k) ? 'Mostra meno' : `Mostra tutte (${righe.length})`); t.type = 'button'; t.title = aperte.has(m.k) ? 'Mostra solo le prime zone della classifica' : 'Mostra tutte le zone della classifica';
         t.addEventListener('click', () => { aperte.has(m.k) ? aperte.delete(m.k) : aperte.add(m.k); classifiche(S, az); });
         card.append(t);
       }
@@ -146,13 +146,13 @@
       r.append(sw, el('span', '', c.nome), el('b', '', fmt(d.n[i]))); L.append(r);
     });
     if (S.spente.size) {
-      const b = el('button', 'azzera', 'Mostra tutte le classi'); b.type = 'button';
+      const b = el('button', 'azzera', 'Mostra tutte le classi'); b.type = 'button'; b.title = 'Riattiva tutte le classi nascoste';
       b.addEventListener('click', () => az.azzera()); L.append(b);
     }
   }
 
   function controlli(S) {
-    document.querySelectorAll('#seg-livello button').forEach(b => { const on = b.dataset.l === S.livello; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+    document.querySelectorAll('#seg-livello button, #seg-livello-mini button').forEach(b => { const on = b.dataset.l === S.livello; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
     document.querySelectorAll('#seg-colore button').forEach(b => { const on = b.dataset.c === S.colore; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
   }
 

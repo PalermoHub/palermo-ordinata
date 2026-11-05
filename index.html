@@ -52,19 +52,19 @@
 <canvas id="cv" role="img" aria-label="Edifici di Palermo"></canvas>
 <canvas id="ov" aria-hidden="true"></canvas>
 <div id="tip" hidden></div>
-<div id="stato" role="status"><div class="spinner"></div><span>Caricamento…</span><button id="riprova" type="button" hidden>Riprova</button></div>
+<div id="stato" role="status"><div class="spinner"></div><span>Caricamento…</span><button id="riprova" type="button" hidden title="Riprova a caricare la mappa di base">Riprova</button></div>
 <div id="avviso" role="status" hidden>Mappa di base non raggiungibile: restano visibili gli edifici.</div>
 <a id="logo-osd" href="https://opendatasicilia.it/" target="_blank" rel="noopener" title="Open Data Sicilia"><img src="img/opendatasicilia.png" alt="Open Data Sicilia" width="42" height="48"></a>
 <div id="avviso-dbl" role="note"><b>Doppio clic</b> (o doppio tocco) su un edificio: lo vedi sulla mappa.</div>
 <div id="scala"><span id="scalaBar"></span><span id="scalaTxt"></span></div>
 <div id="blocco-sx">
 <section id="filtri" aria-label="Filtri e legenda">
-  <button id="filtri-toggle" type="button" aria-expanded="true"><span>Legenda e filtri</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+  <button id="filtri-toggle" type="button" aria-expanded="true" title="Comprimi o espandi legenda e filtri"><span>Legenda e filtri</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
   <div id="filtri-body">
     <div class="seg" id="seg-colore" role="group" aria-label="Colora per">
-      <button type="button" data-c="alt">Altezza</button>
-      <button type="button" data-c="sup">Superficie</button>
-      <button type="button" data-c="uso">Uso</button>
+      <button type="button" data-c="alt" title="Colora gli edifici per altezza">Altezza</button>
+      <button type="button" data-c="sup" title="Colora gli edifici per superficie in pianta">Superficie</button>
+      <button type="button" data-c="uso" title="Colora gli edifici per destinazione d'uso">Uso</button>
     </div>
     <div id="legenda"></div>
     <hr class="panel-sep">
@@ -75,6 +75,11 @@
     <p class="nota nota-dbl"><b>Doppio clic</b> (o doppio tocco) su una zona della mappa: apre la vista sul pannello ordinato.</p>
   </div>
 </section>
+<div class="seg" id="seg-livello-mini" role="group" aria-label="Livello territoriale della mini-mappa">
+  <button type="button" data-l="circ" title="Mostra le 8 circoscrizioni di Palermo">Circoscrizioni</button>
+  <button type="button" data-l="quar" title="Mostra i 25 quartieri di Palermo">Quartieri</button>
+  <button type="button" data-l="upl" title="Mostra le Unità di Primo Livello (UPL), la suddivisione più fine">UPL</button>
+</div>
 <div id="mini-cap" hidden></div>
 <svg id="mini" role="group" aria-label="Mappa delle zone" hidden></svg>
 </div>
@@ -83,10 +88,10 @@
   <div id="cerca-briciole" hidden></div>
   <div id="cerca-riga">
     <div id="cerca-campo">
-      <button id="cerca-prec" type="button" aria-label="Zona precedente"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+      <button id="cerca-prec" type="button" aria-label="Zona precedente" title="Zona precedente (←)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
       <input type="text" id="cerca-zona" role="combobox" aria-expanded="false" aria-controls="cerca-lista" aria-autocomplete="list" autocomplete="off" spellcheck="false" placeholder="Cerca zona o indirizzo (via Maqueda 100)…  ( / )">
       <span id="cerca-pos" aria-live="polite"></span>
-      <button id="cerca-succ" type="button" aria-label="Zona successiva"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      <button id="cerca-succ" type="button" aria-label="Zona successiva" title="Zona successiva (→)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
       <button id="cerca-reset" type="button" title="Azzera filtri e torna alla vista iniziale" aria-label="Azzera tutti i filtri e torna alla vista iniziale"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button>
       <ul id="cerca-lista" role="listbox" aria-label="Zone" hidden></ul>
     </div>
@@ -124,13 +129,13 @@
     </button>
   </div>
   <div id="share-menu" role="menu" aria-label="Condividi su" hidden>
-    <a role="menuitem" data-s="whatsapp" target="_blank" rel="noopener noreferrer">WhatsApp</a>
-    <a role="menuitem" data-s="telegram" target="_blank" rel="noopener noreferrer">Telegram</a>
-    <a role="menuitem" data-s="facebook" target="_blank" rel="noopener noreferrer">Facebook</a>
-    <a role="menuitem" data-s="x" target="_blank" rel="noopener noreferrer">X</a>
-    <a role="menuitem" data-s="linkedin" target="_blank" rel="noopener noreferrer">LinkedIn</a>
-    <a role="menuitem" data-s="mail" target="_blank" rel="noopener noreferrer">Email</a>
-    <button role="menuitem" type="button" data-s="copia">Copia link</button>
+    <a role="menuitem" data-s="whatsapp" target="_blank" rel="noopener noreferrer" title="Condividi su WhatsApp">WhatsApp</a>
+    <a role="menuitem" data-s="telegram" target="_blank" rel="noopener noreferrer" title="Condividi su Telegram">Telegram</a>
+    <a role="menuitem" data-s="facebook" target="_blank" rel="noopener noreferrer" title="Condividi su Facebook">Facebook</a>
+    <a role="menuitem" data-s="x" target="_blank" rel="noopener noreferrer" title="Condividi su X">X</a>
+    <a role="menuitem" data-s="linkedin" target="_blank" rel="noopener noreferrer" title="Condividi su LinkedIn">LinkedIn</a>
+    <a role="menuitem" data-s="mail" target="_blank" rel="noopener noreferrer" title="Condividi via email">Email</a>
+    <button role="menuitem" type="button" data-s="copia" title="Copia il link negli appunti">Copia link</button>
   </div>
 </div>
 
@@ -145,18 +150,18 @@
     <p class="panel-tagline">Gli edifici di Palermo, zona per zona, sollevati dalla mappa e ordinati dal più grande al più piccolo.</p>
   </div>
   <div id="tab-hdrs" role="tablist">
-    <button class="tab-hdr active" type="button" role="tab" data-tab="zone" aria-selected="true">Zone</button>
-    <button class="tab-hdr" type="button" role="tab" data-tab="metodo" aria-selected="false">Metodologia</button>
-    <button class="tab-hdr" type="button" role="tab" data-tab="utilita" aria-selected="false">Utilità</button>
-    <button class="tab-hdr" type="button" role="tab" data-tab="guida" aria-selected="false">Guida</button>
-    <button class="tab-hdr" type="button" role="tab" data-tab="note" aria-selected="false">Credits</button>
+    <button class="tab-hdr active" type="button" role="tab" data-tab="zone" aria-selected="true" title="Statistiche e classifiche delle zone">Zone</button>
+    <button class="tab-hdr" type="button" role="tab" data-tab="metodo" aria-selected="false" title="Come è stata costruita la mappa">Metodologia</button>
+    <button class="tab-hdr" type="button" role="tab" data-tab="utilita" aria-selected="false" title="Strumenti e utilità">Utilità</button>
+    <button class="tab-hdr" type="button" role="tab" data-tab="guida" aria-selected="false" title="Guida all'uso">Guida</button>
+    <button class="tab-hdr" type="button" role="tab" data-tab="note" aria-selected="false" title="Crediti e fonti dei dati">Credits</button>
   </div>
   <div id="panel-body">
     <section id="tab-zone" class="tab-content active" role="tabpanel">
       <div class="seg" id="seg-livello" role="group" aria-label="Livello territoriale">
-        <button type="button" data-l="circ">Circoscrizioni</button>
-        <button type="button" data-l="quar">Quartieri</button>
-        <button type="button" data-l="upl">UPL</button>
+        <button type="button" data-l="circ" title="Mostra le 8 circoscrizioni di Palermo">Circoscrizioni</button>
+        <button type="button" data-l="quar" title="Mostra i 25 quartieri di Palermo">Quartieri</button>
+        <button type="button" data-l="upl" title="Mostra le Unità di Primo Livello (UPL), la suddivisione più fine">UPL</button>
       </div>
       <div id="stat"></div>
       <div id="confronto"></div>
@@ -165,7 +170,7 @@
     </section>
     <section id="tab-metodo" class="tab-content" role="tabpanel">
       <h2>Da dove nasce</h2>
-      <p>L'idea viene da <a href="https://lnkd.in/p/dDZ9AtBM" target="_blank" rel="noopener">un post di Adam Roberts</a> per il #30DayMapChallenge 2026 (giorno 3, Poligoni), «Paris, sorted»: ogni edificio di Parigi viene staccato dalla mappa e messo in fila dal più grande al più piccolo. Il codice di quel progetto è <a href="https://github.com/abenrob/30daymap2026/tree/main/day-03-polygons" target="_blank" rel="noopener">pubblico su GitHub</a>. Abbiamo ripreso l'idea e il principio di disposizione; i dati, la pipeline e il codice di questa mappa sono stati rifatti per Palermo.</p>
+      <p>L'idea viene da <a href="https://lnkd.in/p/dDZ9AtBM" target="_blank" rel="noopener" title="Apri il post di Adam Roberts su LinkedIn">un post di Adam Roberts</a> per il #30DayMapChallenge 2026 (giorno 3, Poligoni), «Paris, sorted»: ogni edificio di Parigi viene staccato dalla mappa e messo in fila dal più grande al più piccolo. Il codice di quel progetto è <a href="https://github.com/abenrob/30daymap2026/tree/main/day-03-polygons" target="_blank" rel="noopener" title="Apri il codice di Adam Roberts su GitHub">pubblico su GitHub</a>. Abbiamo ripreso l'idea e il principio di disposizione; i dati, la pipeline e il codice di questa mappa sono stati rifatti per Palermo.</p>
       <h2>1. I dati</h2>
       <p>Gli edifici vengono dal DigitalTwin di Palermo, che ne ha fatto una sintesi unendo tre fonti globali (Overture Maps, Global Building Atlas, OpenBuildingMap) e il rilievo volumetrico del Comune di Palermo, e sceglie per ogni edificio il disegno più dettagliato. Sono 111.844 poligoni, ciascuno con altezza e, quando c'è, uso. I confini di circoscrizioni, quartieri e UPL sono quelli del Comune.</p>
       <h2>2. La pulizia</h2>
@@ -199,8 +204,8 @@
       </ul>
       <h2>Riferimenti</h2>
       <ul class="guida">
-        <li>Adam Roberts, «Paris, sorted» – <a href="https://lnkd.in/p/dDZ9AtBM" target="_blank" rel="noopener">post su LinkedIn</a></li>
-        <li><a href="https://github.com/abenrob/30daymap2026/tree/main/day-03-polygons" target="_blank" rel="noopener">github.com/abenrob/30daymap2026 · day-03-polygons</a></li>
+        <li>Adam Roberts, «Paris, sorted» – <a href="https://lnkd.in/p/dDZ9AtBM" target="_blank" rel="noopener" title="Apri il post di Adam Roberts su LinkedIn">post su LinkedIn</a></li>
+        <li><a href="https://github.com/abenrob/30daymap2026/tree/main/day-03-polygons" target="_blank" rel="noopener" title="Apri il codice di Adam Roberts su GitHub">github.com/abenrob/30daymap2026 · day-03-polygons</a></li>
       </ul>
     </section>
     <section id="tab-utilita" class="tab-content" role="tabpanel">
@@ -236,7 +241,7 @@
       <p class="guida-intro">Clicca su un'immagine per ingrandirla: si apre una galleria, scorribile con le frecce.</p>
       <h2>1. Le due viste</h2>
       <p><b>Mappa</b>: gli edifici stanno dove si trovano davvero, sopra la cartina di Palermo. <b>Ordinata</b>: ogni zona diventa un blocco in cui gli edifici sono messi in fila dal più grande al più piccolo, tutti con la stessa scala, così le zone si confrontano a colpo d'occhio.</p>
-      <figure><button type="button" class="gal" data-gal="img/guida/mappa-sel.png" data-cap="Vista Mappa con una zona selezionata"><img src="img/guida/mappa-sel.png" alt="La mappa di Palermo con una zona evidenziata" loading="lazy"></button><figcaption>Vista Mappa con una zona selezionata</figcaption></figure>
+      <figure><button type="button" class="gal" data-gal="img/guida/mappa-sel.png" data-cap="Vista Mappa con una zona selezionata" title="Ingrandisci: Vista Mappa con una zona selezionata"><img src="img/guida/mappa-sel.png" alt="La mappa di Palermo con una zona evidenziata" loading="lazy"></button><figcaption>Vista Mappa con una zona selezionata</figcaption></figure>
       <h2>2. Muoversi sulla mappa</h2>
       <ul class="guida">
         <li><b>Trascina</b> col mouse per spostarti; <b>rotella</b> per ingrandire o ridurre.</li>
@@ -247,16 +252,16 @@
         <li><b>Touch</b>: un dito sposta, due dita ingrandiscono (pizzico), doppio tocco apre la vista Ordinata.</li>
       </ul>
       <h2>3. La vista Ordinata</h2>
-      <figure><button type="button" class="gal" data-gal="img/guida/ordinata.png" data-cap="Vista Ordinata: edifici in fila dal più grande al più piccolo"><img src="img/guida/ordinata.png" alt="Un blocco di edifici ordinati per dimensione" loading="lazy"></button><figcaption>Vista Ordinata: edifici in fila dal più grande al più piccolo</figcaption></figure>
+      <figure><button type="button" class="gal" data-gal="img/guida/ordinata.png" data-cap="Vista Ordinata: edifici in fila dal più grande al più piccolo" title="Ingrandisci: Vista Ordinata: edifici in fila dal più grande al più piccolo"><img src="img/guida/ordinata.png" alt="Un blocco di edifici ordinati per dimensione" loading="lazy"></button><figcaption>Vista Ordinata: edifici in fila dal più grande al più piccolo</figcaption></figure>
       <ul class="guida">
         <li>Trascina e usa la rotella come sulla mappa. I pulsanti <b>+</b> e <b>−</b> del menu a sinistra fanno lo stesso.</li>
         <li><b>Doppio clic su un edificio</b>: torni alla Mappa, centrata proprio su quell'edificio.</li>
         <li><b>Doppio clic su uno spazio vuoto</b>: inquadra di nuovo tutti i blocchi.</li>
         <li>La <b>X</b> accanto al blocco (o il tasto <kbd>M</kbd>) riporta alla Mappa.</li>
       </ul>
-      <figure><button type="button" class="gal" data-gal="img/guida/ordinata-tip.png" data-cap="Passando sopra un edificio compare la scheda con i dati"><img src="img/guida/ordinata-tip.png" alt="Scheda con i dati di un edificio" loading="lazy"></button><figcaption>Passando sopra un edificio compare la scheda con i dati</figcaption></figure>
+      <figure><button type="button" class="gal" data-gal="img/guida/ordinata-tip.png" data-cap="Passando sopra un edificio compare la scheda con i dati" title="Ingrandisci: Passando sopra un edificio compare la scheda con i dati"><img src="img/guida/ordinata-tip.png" alt="Scheda con i dati di un edificio" loading="lazy"></button><figcaption>Passando sopra un edificio compare la scheda con i dati</figcaption></figure>
       <h2>4. Cercare una zona o un indirizzo</h2>
-      <figure><button type="button" class="gal" data-gal="img/guida/cerca-lista.png" data-cap="La barra di ricerca in basso suggerisce le zone mentre scrivi"><img src="img/guida/cerca-lista.png" alt="Barra di ricerca con elenco dei suggerimenti" loading="lazy"></button><figcaption>La barra di ricerca in basso suggerisce le zone mentre scrivi</figcaption></figure>
+      <figure><button type="button" class="gal" data-gal="img/guida/cerca-lista.png" data-cap="La barra di ricerca in basso suggerisce le zone mentre scrivi" title="Ingrandisci: La barra di ricerca in basso suggerisce le zone mentre scrivi"><img src="img/guida/cerca-lista.png" alt="Barra di ricerca con elenco dei suggerimenti" loading="lazy"></button><figcaption>La barra di ricerca in basso suggerisce le zone mentre scrivi</figcaption></figure>
       <ul class="guida">
         <li>Scrivi nella barra in basso (circoscrizione, quartiere o UPL) e scegli dall'elenco.</li>
         <li><b>Indirizzo</b>: scrivi via e civico (es. «via Maqueda 100»). Se scrivi solo la via, scegli «Via …» e poi il civico dall'elenco. La mappa si centra sull'edificio più vicino a quel civico e lo evidenzia.</li>
@@ -266,7 +271,7 @@
         <li>La mini-mappa in basso a sinistra mostra dove sei: clicca una zona per andarci.</li>
       </ul>
       <h2>5. Legenda e filtri</h2>
-      <figure><button type="button" class="gal" data-gal="img/guida/legenda.png" data-cap="Legenda e filtri, in alto a sinistra"><img src="img/guida/legenda.png" alt="Il riquadro Legenda e filtri" loading="lazy"></button><figcaption>Legenda e filtri, in alto a sinistra</figcaption></figure>
+      <figure><button type="button" class="gal" data-gal="img/guida/legenda.png" data-cap="Legenda e filtri, in alto a sinistra" title="Ingrandisci: Legenda e filtri, in alto a sinistra"><img src="img/guida/legenda.png" alt="Il riquadro Legenda e filtri" loading="lazy"></button><figcaption>Legenda e filtri, in alto a sinistra</figcaption></figure>
       <ul class="guida">
         <li><b>Altezza / Superficie / Uso</b>: cambia il criterio con cui sono colorati gli edifici.</li>
         <li><b>Clic su una voce</b> della legenda: nasconde o mostra quella classe.</li>
@@ -276,7 +281,7 @@
         <li><b>Live Zoom</b>: dopo un filtro la vista si adatta agli edifici rimasti.</li>
       </ul>
       <h2>6. Il pannello dei dati</h2>
-      <figure><button type="button" class="gal" data-gal="img/guida/pannello.png" data-cap="Il pannello a destra: livello territoriale, statistiche e classifiche"><img src="img/guida/pannello.png" alt="Il pannello dei dati" loading="lazy"></button><figcaption>Il pannello a destra: livello territoriale, statistiche e classifiche</figcaption></figure>
+      <figure><button type="button" class="gal" data-gal="img/guida/pannello.png" data-cap="Il pannello a destra: livello territoriale, statistiche e classifiche" title="Ingrandisci: Il pannello a destra: livello territoriale, statistiche e classifiche"><img src="img/guida/pannello.png" alt="Il pannello dei dati" loading="lazy"></button><figcaption>Il pannello a destra: livello territoriale, statistiche e classifiche</figcaption></figure>
       <ul class="guida">
         <li>Scegli il livello: <b>Circoscrizioni</b>, <b>Quartieri</b> o <b>UPL</b>.</li>
         <li>Le barre per classe sono cliccabili: un clic isola quella classe, un secondo clic la rimette.</li>
@@ -284,7 +289,7 @@
         <li>Trascina il bordo sinistro per allargare il pannello; la linguetta lo chiude.</li>
       </ul>
       <h2>7. Confronta due zone</h2>
-      <figure><button type="button" class="gal" data-gal="img/guida/confronto.png" data-cap="Confronto fra due zone: sulla mappa restano evidenziate, nel pannello i numeri affiancati"><img src="img/guida/confronto.png" alt="Il riquadro Confronta due zone con la tabella dei dati e le due zone evidenziate sulla mappa" loading="lazy"></button><figcaption>Confronto fra due zone: sulla mappa restano evidenziate, nel pannello i numeri affiancati</figcaption></figure>
+      <figure><button type="button" class="gal" data-gal="img/guida/confronto.png" data-cap="Confronto fra due zone: sulla mappa restano evidenziate, nel pannello i numeri affiancati" title="Ingrandisci: Confronto fra due zone: sulla mappa restano evidenziate, nel pannello i numeri affiancati"><img src="img/guida/confronto.png" alt="Il riquadro Confronta due zone con la tabella dei dati e le due zone evidenziate sulla mappa" loading="lazy"></button><figcaption>Confronto fra due zone: sulla mappa restano evidenziate, nel pannello i numeri affiancati</figcaption></figure>
       <ul class="guida">
         <li>Nel tab <b>Zone</b> apri «<b>Confronta due zone</b>» e scegli le due zone dai menu: la prima è in arancione, la seconda in azzurro, sia nella tabella sia sulla mappa.</li>
         <li>La tabella mette a fianco <b>edifici</b>, <b>impronta a terra</b>, <b>superficie mediana</b>, <b>altezza mediana</b> e <b>densità</b>; il valore più alto di ogni riga è in evidenza.</li>
@@ -293,7 +298,7 @@
         <li>«<b>Azzera confronto</b>» lo chiude e torna alla mappa intera.</li>
       </ul>
       <h2>8. Il menu delle viste</h2>
-      <figure><button type="button" class="gal" data-gal="img/guida/dial.png" data-cap="Il menu rotondo arancione, in alto a sinistra"><img src="img/guida/dial.png" alt="Il menu delle viste aperto" loading="lazy"></button><figcaption>Il menu rotondo arancione, in alto a sinistra</figcaption></figure>
+      <figure><button type="button" class="gal" data-gal="img/guida/dial.png" data-cap="Il menu rotondo arancione, in alto a sinistra" title="Ingrandisci: Il menu rotondo arancione, in alto a sinistra"><img src="img/guida/dial.png" alt="Il menu delle viste aperto" loading="lazy"></button><figcaption>Il menu rotondo arancione, in alto a sinistra</figcaption></figure>
       <p>Dall'alto: <b>Home</b> (inquadra Palermo), <b>zoom +</b>, <b>zoom −</b>, <b>vista Mappa</b>, <b>tema chiaro/scuro</b>, <b>schermo intero</b>.</p>
       <h2>9. Scorciatoie da tastiera</h2>
       <table class="tasti">
@@ -311,10 +316,10 @@
     </section>
     <section id="tab-note" class="tab-content" role="tabpanel">
       <h2>Fonti</h2>
-      <p>Edifici: «Edifici 3D (edifici unificati)» di <a href="https://palermodigitaltwin.opendatasicilia.it/fonti.html" target="_blank" rel="noopener">DigitalTwin Palermo</a>, sintesi di tre fonti globali (Overture Maps Foundation, Global Building Atlas, OpenBuildingMap) unite con una pipeline di geoprocessing (2026) e del rilievo volumetrico del Comune di Palermo (2006). Licenza dichiarata dalla fonte: da verificare prima di un uso diverso dalla consultazione.</p>
+      <p>Edifici: «Edifici 3D (edifici unificati)» di <a href="https://palermodigitaltwin.opendatasicilia.it/fonti.html" target="_blank" rel="noopener" title="Apri le fonti di DigitalTwin Palermo">DigitalTwin Palermo</a>, sintesi di tre fonti globali (Overture Maps Foundation, Global Building Atlas, OpenBuildingMap) unite con una pipeline di geoprocessing (2026) e del rilievo volumetrico del Comune di Palermo (2006). Licenza dichiarata dalla fonte: da verificare prima di un uso diverso dalla consultazione.</p>
       <p>Confini: circoscrizioni, quartieri e UPL del Comune di Palermo.</p>
       <p>Indirizzi (solo per la ricerca): civici ANNCSU, Archivio nazionale dei numeri civici e delle strade urbane (Agenzia delle Entrate e ISTAT), aggiornamento febbraio 2026. Ogni civico è agganciato all'edificio più vicino (entro 25 m), quindi il risultato è l'edificio più probabile, non sempre quello esatto.</p>
-      <p>Idea e metodo: l'idea viene da <a href="https://lnkd.in/p/dDZ9AtBM" target="_blank" rel="noopener">un post di Adam Roberts</a> per il #30DayMapChallenge 2026 (giorno 3, Poligoni), «Paris, sorted». Il codice di quel progetto è <a href="https://github.com/abenrob/30daymap2026/tree/main/day-03-polygons" target="_blank" rel="noopener">pubblico su GitHub</a>. Abbiamo ripreso l'idea e il principio di disposizione; i dati, la pipeline e il codice di questa mappa sono stati rifatti per Palermo.</p>
+      <p>Idea e metodo: l'idea viene da <a href="https://lnkd.in/p/dDZ9AtBM" target="_blank" rel="noopener" title="Apri il post di Adam Roberts su LinkedIn">un post di Adam Roberts</a> per il #30DayMapChallenge 2026 (giorno 3, Poligoni), «Paris, sorted». Il codice di quel progetto è <a href="https://github.com/abenrob/30daymap2026/tree/main/day-03-polygons" target="_blank" rel="noopener" title="Apri il codice di Adam Roberts su GitHub">pubblico su GitHub</a>. Abbiamo ripreso l'idea e il principio di disposizione; i dati, la pipeline e il codice di questa mappa sono stati rifatti per Palermo.</p>
       <p>Mappa di base: © OpenStreetMap contributors, OpenFreeMap, OpenMapTiles. Satellite: Esri World Imagery.</p>
       <h2>Sviluppo</h2>
       <p>Web app progettata e sviluppata da <a href="https://www.linkedin.com/in/gbvitrano" target="_blank" rel="noopener" title="gbvitrano su LinkedIn">@gbvitrano</a> in collaborazione con <a href="https://www.anthropic.com/claude" target="_blank" rel="noopener" title="Claude AI, Anthropic">Claude AI (Anthropic)</a>, che ha affiancato le scelte architetturali, l'ottimizzazione del codice e lo sviluppo delle funzionalità di visualizzazione geospaziale.</p>
@@ -323,18 +328,18 @@
   <button id="torna-su" type="button" aria-label="Torna in cima" title="Torna in cima"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 15 6-6 6 6"/></svg></button>
 </aside>
 <div id="galleria" role="dialog" aria-modal="true" aria-label="Galleria della guida" hidden>
-  <button type="button" class="g-x" aria-label="Chiudi">&#x2715;</button>
-  <button type="button" class="g-prec" aria-label="Immagine precedente">&#x2039;</button>
+  <button type="button" class="g-x" title="Chiudi (Esc)" aria-label="Chiudi">&#x2715;</button>
+  <button type="button" class="g-prec" title="Immagine precedente (←)" aria-label="Immagine precedente">&#x2039;</button>
   <figure><img alt=""><figcaption></figcaption></figure>
-  <button type="button" class="g-succ" aria-label="Immagine successiva">&#x203A;</button>
+  <button type="button" class="g-succ" title="Immagine successiva (→)" aria-label="Immagine successiva">&#x203A;</button>
   <span class="g-n" aria-live="polite"></span>
 </div>
 
 <nav id="m-tabs" aria-label="Sezioni">
-  <button type="button" data-t="mappa" class="on" aria-pressed="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14M15 6v14"/></svg><span>Mappa</span></button>
-  <button type="button" data-t="filtri" aria-pressed="false"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 13 9 5 9-5"/></svg><span>Legenda</span></button>
-  <button type="button" data-t="zone" aria-pressed="false"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 10v10"/></svg><span>Zone</span></button>
-  <button type="button" data-t="guida" aria-pressed="false"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.2a2.6 2.6 0 1 1 3.6 2.4c-.7.4-1.1.9-1.1 1.7"/><path d="M12 17h.01"/></svg><span>Guida</span></button>
+  <button type="button" data-t="mappa" title="Vista mappa" class="on" aria-pressed="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14M15 6v14"/></svg><span>Mappa</span></button>
+  <button type="button" data-t="filtri" title="Legenda e filtri" aria-pressed="false"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 13 9 5 9-5"/></svg><span>Legenda</span></button>
+  <button type="button" data-t="zone" title="Zone e statistiche" aria-pressed="false"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 10v10"/></svg><span>Zone</span></button>
+  <button type="button" data-t="guida" title="Guida all'uso" aria-pressed="false"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.2a2.6 2.6 0 1 1 3.6 2.4c-.7.4-1.1.9-1.1 1.7"/><path d="M12 17h.01"/></svg><span>Guida</span></button>
 </nav>
 
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js" integrity="sha384-SYKAG6cglRMN0RVvhNeBY0r3FYKNOJtznwA0v7B5Vp9tr31xAHsZC0DqkQ/pZDmj" crossorigin="anonymous"></script>

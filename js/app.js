@@ -573,7 +573,7 @@ function collegaInterfaccia() {
       case 'condividi': menuCondividi(); break;
     }
   }));
-  document.querySelectorAll('#seg-livello button').forEach(b => b.addEventListener('click', () => cambiaLivello(b.dataset.l)));
+  document.querySelectorAll('#seg-livello button, #seg-livello-mini button').forEach(b => b.addEventListener('click', () => cambiaLivello(b.dataset.l)));
   document.querySelectorAll('#seg-colore button').forEach(b => b.addEventListener('click', () => cambiaColore(b.dataset.c)));
   $('raggruppa').addEventListener('change', e => { S.raggruppa = e.target.checked; scriviHash(); ricalcola(); });
   $('lato').addEventListener('change', e => { S.lato = e.target.checked; scriviHash(); ricalcola(); });
