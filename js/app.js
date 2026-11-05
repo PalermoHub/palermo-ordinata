@@ -171,7 +171,7 @@ function soloClasse(cls) {                                          // dalle bar
 }
 function azzeraFiltro() { if (!S.spente.size) return; S.spente.clear(); applicaFiltro(); }
 function applicaFiltro() {
-  nascondiTip(); R.ricolora(); Pannello.aggiorna(S, azioni); R.disegna();
+  scriviHash(); nascondiTip(); R.ricolora(); Pannello.aggiorna(S, azioni); R.disegna();
   if (S.liveZoom) inquadraVisibili();
 }
 /* porta alla zona di un qualunque livello: cambia livello se serve, poi la seleziona (usata dal cerca) */
@@ -253,15 +253,27 @@ function leggiHash() {
   const l = p.get('l'), v = p.get('v');
   const c = (p.get('c') || '').split('/').map(Number);                     // c = zoom/lat/lon (stesso formato dell'hash MapLibre)
   const cam = c.length === 3 && c.every(Number.isFinite) && Math.abs(c[1]) <= 85 && Math.abs(c[2]) <= 180 ? c : null;
-  return { l: LIVELLI.includes(l) ? l : 'upl', v: v === 'sorted' ? 'sorted' : 'map', z: p.get('z'), c: cam };
+  const k = p.get('k');
+  const x = (p.get('x') || '').split(',').filter(Boolean).map(Number).filter(n => Number.isInteger(n) && n >= 0 && n < 32);
+  const tab = p.get('p');
+  return { l: LIVELLI.includes(l) ? l : 'upl', v: v === 'sorted' ? 'sorted' : 'map', z: p.get('z'), c: cam,
+    k: ['uso', 'alt', 'sup'].includes(k) ? k : 'alt', x, g: p.get('g') === '1', s: p.get('s') !== '0', i: p.get('i') === '1',
+    t: p.get('t') === 'light' || p.get('t') === 'dark' ? p.get('t') : null,
+    p: tab && document.querySelector(`.tab-hdr[data-tab="${CSS.escape(tab)}"]`) ? tab : 'zone' };
 }
 function applicaCamera(c) { B.map.jumpTo({ zoom: c[0], center: [c[2], c[1]] }); }
-function scriviHash() {
-  if (!S.citta) return;
+/* L'hash descrive tutto cio' che l'utente vede (livello, vista, zona, camera, colore, filtri, opzioni, tema, tab): e' anche il link condiviso. */
+function costruisciHash() {
   const z = S.sel === null ? '' : `&z=${encodeURIComponent(S.citta.zone[S.sel].id)}`;
   let c = '';
   if (S.vista === 'map' && B) { const m = B.map, ce = m.getCenter(); c = `&c=${m.getZoom().toFixed(2)}/${ce.lat.toFixed(4)}/${ce.lng.toFixed(4)}`; }
-  history.replaceState(null, '', `#l=${S.livello}&v=${S.vista}${z}${c}`);
+  const tab = document.querySelector('.tab-hdr.active'), p = tab && tab.dataset.tab !== 'zone' ? `&p=${tab.dataset.tab}` : '';
+  const x = S.spente.size ? `&x=${[...S.spente].sort((a, b) => a - b).join(',')}` : '';
+  return `l=${S.livello}&v=${S.vista}${z}${c}&k=${S.colore}${x}${S.raggruppa ? '&g=1' : ''}${S.lato ? '' : '&s=0'}${S.isola ? '&i=1' : ''}&t=${S.tema}${p}`;
+}
+function scriviHash() {
+  if (!S.citta) return;
+  history.replaceState(null, '', '#' + costruisciHash());
 }
 
 /* ---------- tooltip ---------- */
@@ -404,7 +416,7 @@ async function cambiaLivello(liv) {
 }
 function cambiaColore(c) {
   if (c === S.colore) return;
-  S.colore = c; S.spente.clear(); aggiornaUI();
+  S.colore = c; S.spente.clear(); aggiornaUI(); scriviHash();
   if (S.raggruppa) ricalcola(); else { R.ricolora(); Pannello.aggiorna(S, azioni); R.disegna(); }
 }
 function applicaTema(t, salva) {
@@ -412,6 +424,7 @@ function applicaTema(t, salva) {
   if (B) B.setTema(t);
   if (salva) { try { localStorage.setItem('tema', t); } catch (_) {} }
   if (R && S.citta) R.disegna();
+  scriviHash();
 }
 function temaIniziale() {
   try { const t = localStorage.getItem('tema'); if (t === 'light' || t === 'dark') return t; } catch (_) {}
@@ -486,12 +499,13 @@ function posizionaX() {
   const l = Math.min(v.tx + (b.x + b.w) * v.k + 20, Wd - 56), t = Math.min(Math.max(v.ty + b.y * v.k, 12), S.H - S.insetB - 56) + (mobile() ? document.getElementById('cv').offsetTop : 0);
   x.style.right = 'auto'; x.style.left = Math.max(l, 12) + 'px'; x.style.top = t + 'px';
 }
-/* Condivisione: la pagina gira in iframe su palermohub.opendatasicilia.it, quindi si condivide l'URL della pagina ospite
-   (location.href sarebbe quello dell'iframe). Menu di link + copia: niente SDK, niente tracker, funziona anche con iframe senza allow="web-share". */
-const URL_CONDIVISIONE = 'https://palermohub.opendatasicilia.it/palermo-ordinata.html';
+/* Condivisione: la pagina ospite (palermohub.opendatasicilia.it) non puo' inoltrare l'hash all'iframe, quindi si condivide
+   l'URL diretto dell'app con l'hash completo dello stato corrente. Menu di link + copia: niente SDK, niente tracker, funziona anche con iframe senza allow="web-share". */
+const URL_APP = 'https://palermohub.github.io/palermo-ordinata/';
+const urlCondivisione = () => { scriviHash(); return URL_APP + '#' + costruisciHash(); };
 const TESTO_CONDIVISIONE = 'Palermo, ordinata: gli edifici zona per zona, dal più grande al più piccolo';
 function linkSocial(r) {
-  const u = encodeURIComponent(URL_CONDIVISIONE), t = encodeURIComponent(TESTO_CONDIVISIONE);
+  const u = encodeURIComponent(urlCondivisione()), t = encodeURIComponent(TESTO_CONDIVISIONE);
   return { whatsapp: `https://wa.me/?text=${t}%20${u}`, telegram: `https://t.me/share/url?url=${u}&text=${t}`,
     facebook: `https://www.facebook.com/sharer/sharer.php?u=${u}`, x: `https://twitter.com/intent/tweet?url=${u}&text=${t}`,
     linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${u}`, mail: `mailto:?subject=${t}&body=${u}` }[r];
@@ -501,6 +515,7 @@ function menuCondividi() {
   const m = $('share-menu'), b = $('share-btn');
   if (!m.hidden) { chiudiCondividi(); return; }
   const r = b.getBoundingClientRect();
+  m.querySelectorAll('a[data-s]').forEach(a => { a.href = linkSocial(a.dataset.s); });
   m.hidden = false; b.setAttribute('aria-expanded', 'true');
   m.style.left = Math.min(r.right + 8, innerWidth - m.offsetWidth - 8) + 'px';
   m.style.top = Math.max(8, Math.min(r.top, innerHeight - m.offsetHeight - 8)) + 'px';
@@ -509,7 +524,7 @@ function collegaCondividi() {
   const m = $('share-menu');
   m.querySelectorAll('a[data-s]').forEach(a => { a.href = linkSocial(a.dataset.s); a.addEventListener('click', chiudiCondividi); });
   m.querySelector('[data-s="copia"]').addEventListener('click', async e => {
-    const el = e.currentTarget; let ok = false;
+    const el = e.currentTarget, URL_CONDIVISIONE = urlCondivisione(); let ok = false;
     try { await navigator.clipboard.writeText(URL_CONDIVISIONE); ok = true; } catch (_) {
       const t = document.createElement('textarea'); t.value = URL_CONDIVISIONE; t.style.position = 'fixed'; t.style.opacity = '0';
       document.body.appendChild(t); t.select(); try { ok = document.execCommand('copy'); } catch (_) {} t.remove();
@@ -544,12 +559,12 @@ function collegaInterfaccia() {
   }));
   document.querySelectorAll('#seg-livello button').forEach(b => b.addEventListener('click', () => cambiaLivello(b.dataset.l)));
   document.querySelectorAll('#seg-colore button').forEach(b => b.addEventListener('click', () => cambiaColore(b.dataset.c)));
-  $('raggruppa').addEventListener('change', e => { S.raggruppa = e.target.checked; ricalcola(); });
-  $('lato').addEventListener('change', e => { S.lato = e.target.checked; ricalcola(); });
+  $('raggruppa').addEventListener('change', e => { S.raggruppa = e.target.checked; scriviHash(); ricalcola(); });
+  $('lato').addEventListener('change', e => { S.lato = e.target.checked; scriviHash(); ricalcola(); });
   try { S.liveZoom = localStorage.getItem('live-zoom') !== '0'; } catch (_) {}
   $('live-zoom').checked = S.liveZoom;
   $('live-zoom').addEventListener('change', e => { S.liveZoom = e.target.checked; try { localStorage.setItem('live-zoom', S.liveZoom ? '1' : '0'); } catch (_) {} });
-  $('isola').addEventListener('change', e => { S.isola = e.target.checked; nascondiTip(); R.ricolora(); R.disegna(); if (S.isola && S.sel !== null) seleziona(S.sel); });
+  $('isola').addEventListener('change', e => { S.isola = e.target.checked; scriviHash(); nascondiTip(); R.ricolora(); R.disegna(); if (S.isola && S.sel !== null) seleziona(S.sel); });
   $('filtri-toggle').addEventListener('click', () => { const c = $('filtri').classList.toggle('chiuso'); $('filtri-toggle').setAttribute('aria-expanded', String(!c)); });
   initResizePannello();
   $('panel-toggle').addEventListener('click', () => impostaPannello(!pannelloAperto()));
@@ -567,7 +582,7 @@ function collegaInterfaccia() {
   document.querySelectorAll('.tab-hdr').forEach(b => b.addEventListener('click', () => {
     document.querySelectorAll('.tab-hdr').forEach(x => { const on = x === b; x.classList.toggle('active', on); x.setAttribute('aria-selected', String(on)); });
     document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === 'tab-' + b.dataset.tab));
-    corpo.scrollTop = 0; su.classList.remove('on');
+    corpo.scrollTop = 0; su.classList.remove('on'); scriviHash();
   }));
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !e.target.matches('input')) seleziona(null); });
   window.addEventListener('hashchange', async () => {
@@ -604,9 +619,9 @@ function ridimensiona() {
 
 (async function avvio() {
   try {
-    S.tema = temaIniziale(); document.documentElement.dataset.theme = S.tema;
-    S.dpr = window.devicePixelRatio || 1; S.W = $('map').clientWidth || innerWidth; S.H = $('map').clientHeight || innerHeight;
     const h = leggiHash();
+    S.tema = h.t || temaIniziale(); document.documentElement.dataset.theme = S.tema;
+    S.dpr = window.devicePixelRatio || 1; S.W = $('map').clientWidth || innerWidth; S.H = $('map').clientHeight || innerHeight;
     S.index = await (await fetch('data/index.json')).json();
     S.gamma = Geo.convergenza(S.index);
     B = Base.crea($('map'), S.tema);
@@ -615,7 +630,9 @@ function ridimensiona() {
     R.disegna = (...args) => { const r = disegnaOrig.apply(R, args); posizionaX(); return r; };
     collegaMappa(); collegaInterfaccia(); Cerca.init(S, azioni);
     $('map').addEventListener('base-offline', () => avvisa('Mappa di base non raggiungibile: restano visibili gli edifici.'));
-    S.colore = 'alt'; S.raggruppa = $('raggruppa').checked; S.lato = $('lato').checked;
+    S.colore = h.k; S.spente = new Set(h.x); S.raggruppa = h.g; S.lato = h.s; S.isola = h.i;
+    $('raggruppa').checked = h.g; $('lato').checked = h.s; $('isola').checked = h.i;
+    document.querySelector(`.tab-hdr[data-tab="${h.p}"]`).click();
     impostaPannello(!mobile());
     B.limiti();
     new ResizeObserver(ridimensiona).observe(document.body);
