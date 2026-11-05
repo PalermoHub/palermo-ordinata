@@ -23,6 +23,7 @@
     /* ricostruisce gli array tipizzati da S.citta e S.layout (dopo caricamento, layout, lato, colore) */
     function carica() {
       const it = S.citta.items; n = it.length;
+      const reale = S.isoFocus !== null && S.isoTipo === 'lotto';                         // nel lotto gli edifici restano nella posizione e nell'orientamento reali
       MX = new Float64Array(n); MY = new Float64Array(n); SX = new Float64Array(n); SY = new Float64Array(n);
       OW = new Float32Array(n); OH = new Float32Array(n); SW = new Float32Array(n); SH = new Float32Array(n);
       SCX = new Float32Array(n); SCY = new Float32Array(n); ANG1 = new Float32Array(n); ZI = new Int16Array(n);
@@ -31,7 +32,7 @@
         MX[i] = b.mx; MY[i] = b.my; ZI[i] = b.z;
         SX[i] = S.layout.pos[2 * i]; SY[i] = S.layout.pos[2 * i + 1];
         OW[i] = b.ow; OH[i] = b.oh;
-        if (S.lato) { SW[i] = b.lw; SH[i] = b.lh; SCX[i] = b.lcx; SCY[i] = b.lcy; ANG1[i] = b.ang; }
+        if (S.lato && !reale) { SW[i] = b.lw; SH[i] = b.lh; SCX[i] = b.lcx; SCY[i] = b.lcy; ANG1[i] = b.ang; }
         else { SW[i] = b.ow; SH[i] = b.oh; SCX[i] = b.ocx; SCY[i] = b.ocy; ANG1[i] = 0; }
       }
       ricolora();
@@ -114,6 +115,7 @@
       scala(k);
       if (e < 0.999) disegnaConfini(v, 1 - e);
       if (e > 0.001) disegnaBlocchi(vs, e);
+      if (e > 0.001 && S.isoFocus !== null && S.isoTipo === 'lotto' && S.lottoAnelli) disegnaLotto(vs, e);
 
       const sel = inFuoco() ? 1 : null, ncl = PER.length, cols = COLORI[S.colore];
       const grandi = [];
@@ -244,6 +246,20 @@
           ctx.fillText(testo, x, y - 4 * dpr);
         }
       });
+      ctx.restore();
+    }
+
+    /* contorno della particella nel blocco del lotto (sotto gli edifici) */
+    function disegnaLotto(vs, alfa) {
+      const dpr = S.dpr, k = vs.k;
+      ctx.save(); ctx.globalAlpha = alfa; ctx.lineJoin = 'round';
+      ctx.beginPath();
+      for (const a of S.lottoAnelli) {
+        for (let i = 0; i < a.length; i += 2) { const X = (vs.tx + a[i] * k) * dpr, Y = (vs.ty + a[i + 1] * k) * dpr; i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }
+        ctx.closePath();
+      }
+      ctx.fillStyle = 'rgba(245,166,35,.10)'; ctx.fill('evenodd');
+      ctx.strokeStyle = stile('--accent'); ctx.lineWidth = 2.2 * dpr; ctx.stroke();
       ctx.restore();
     }
 

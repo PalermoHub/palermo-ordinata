@@ -61,6 +61,8 @@
     return { n, m2 };
   }
 
+  const nomeFuoco = S => S.isoTipo === 'lotto' ? 'lotto' : 'isolato';
+
   function statIso(S, az) {
     const box = $('stat'); box.textContent = '';
     const it = S.isoItems.map(i => S.citta.items[i]), n = it.length, imp = it.reduce((a, b) => a + b.area, 0);
@@ -69,12 +71,12 @@
     const ND = S.index.classi.uso.findIndex(c => c.id === 'ND'), cls = usi.reduce((a, v, i) => i === ND ? a : a + v, 0);
     let iu = -1; usi.forEach((v, i) => { if (i !== ND && (iu < 0 || v > usi[iu])) iu = i; });
     const nome = el('div', 'stat-nome'); nome.append(el('span', '', S.isoTitolo));
-    const b = el('button', '', 'Torna alla mappa'); b.type = 'button'; b.title = "Esci dall'isolato e torna alla mappa, centrata su di lui"; b.addEventListener('click', () => az.esciIsolato());
+    const b = el('button', '', 'Torna alla mappa'); b.type = 'button'; b.title = `Esci dal ${nomeFuoco(S)} e torna alla mappa, centrata su di lui`; b.addEventListener('click', () => az.esciIsolato());
     nome.append(b); box.append(nome);
     if (S.isoZona) box.append(el('p', 'stat-card-note', S.isoZona));
     const g = el('div', 'stat-grid');
     const carte = [
-      ['Edifici', fmt(n), 'in questo isolato'],
+      ['Edifici', fmt(n), `in questo ${nomeFuoco(S)}`],
       ['Impronta a terra', `${fmt(Math.round(imp))} m²`, `${fmt(Math.round(imp / n))} m² per edificio`],
       ['Mediana', `${fmt(Math.round(mediana(it.map(x => x.area))))} m²`, 'superficie di un edificio'],
       ['Altezza mediana', hz ? `${f1(hz)} m` : 'n.d.', hh.length < n ? `${fmt(hh.length)} edifici con quota nota` : 'tutti con quota nota'],
@@ -102,7 +104,7 @@
     card.append(lista);
     if (righe.length > PRIME_ISO) {
       const t = el('button', 'rank-more', aperte.has('iso') ? 'Mostra meno' : `Mostra tutti (${righe.length})`); t.type = 'button';
-      t.title = aperte.has('iso') ? 'Mostra solo i primi edifici' : "Mostra tutti gli edifici dell'isolato";
+      t.title = aperte.has('iso') ? 'Mostra solo i primi edifici' : `Mostra tutti gli edifici del ${nomeFuoco(S)}`;
       t.addEventListener('click', () => { aperte.has('iso') ? aperte.delete('iso') : aperte.add('iso'); grandiIso(S, az); });
       card.append(t);
     }
@@ -177,7 +179,8 @@
     const Z = S.citta.zone, m = S.colore, nomi = S.index.classi[m], col = S.colori[m];
     if (S.isoFocus !== null) {
       const d = datiIso(S);
-      q.append(barre(`Isolato: edifici per ${NOME_COL[m]}`, nomi, col, d.n, 'n', S, az), barre(`Isolato: impronta a terra per ${NOME_COL[m]}`, nomi, col, d.m2, 'm2', S, az));
+      const Nf = S.isoTipo === 'lotto' ? 'Lotto' : 'Isolato';
+      q.append(barre(`${Nf}: edifici per ${NOME_COL[m]}`, nomi, col, d.n, 'n', S, az), barre(`${Nf}: impronta a terra per ${NOME_COL[m]}`, nomi, col, d.m2, 'm2', S, az));
       return;
     }
     if (S.conf) {                                                   // confronto: stesse barre per le due zone, sulla stessa scala

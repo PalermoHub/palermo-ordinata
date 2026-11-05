@@ -53,7 +53,7 @@
       acceso: () => on,
       kSotto(point) {
         if (!on || !map.getLayer(FILL)) return null;
-        const f = map.queryRenderedFeatures(point, { layers: [FILL] })[0];
+        const f = map.queryRenderedFeatures(Array.isArray(point) ? point : [point.x, point.y], { layers: [FILL] })[0];   // un {x,y} semplice verrebbe letto come opzioni
         return f ? { k: f.properties.k, props: f.properties } : null;
       },
       evidenzia(k) { hover = k == null ? -1 : k; filtro(HOVER, hover); },

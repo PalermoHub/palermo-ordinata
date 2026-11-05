@@ -11,7 +11,7 @@ const NUM = new Intl.NumberFormat('it-IT', { useGrouping: 'always' });
 
 const S = {
   index: null, citta: null, layout: null, livello: 'circ', vista: 'map', colore: 'alt', raggruppa: false, lato: true,
-  sel: null, conf: null, isola: false, isolati: false, lotti: false, lottoSel: null, lottoHover: null, moran: null, isoHover: -1, isoSel: null, isoFocus: null, isoSet: null, isoItems: [], isoTitolo: '', isoZona: '', spente: new Set(), liveZoom: true, zonaHover: null, views: { sorted: { k: 1, tx: 0, ty: 0 } }, fitOrd: true,
+  sel: null, conf: null, isola: false, isolati: false, lotti: false, lottoSel: null, lottoHover: null, moran: null, isoHover: -1, isoSel: null, isoFocus: null, isoTipo: 'isolato', lottoAnelli: null, lottoBBox: null, lottoProps: null, isoSet: null, isoItems: [], isoTitolo: '', isoZona: '', spente: new Set(), liveZoom: true, zonaHover: null, views: { sorted: { k: 1, tx: 0, ty: 0 } }, fitOrd: true,
   t: 0, lin: 0, anim: false, caricando: false, coda: [], dpr: 1, W: 0, H: 0, inset: 0, pw: 400, insetB: 0, gamma: 0, mediana: 0, tema: 'dark',
   colori: Render.COLORI, hover: -1,
 };
@@ -47,7 +47,7 @@ async function caricaLivello(liv) {
     S.citta = null; S.sel = null; S.conf = null; S.zonaHover = null; nascondiTip();
     const c = await Citta.carica(liv, S.index);
     preparaZone(c);
-    S.citta = c; S.livello = liv; S.isoFocus = null; S.isoSet = null; S.isoItems = [];     // gli indici degli edifici cambiano con il livello
+    S.citta = c; S.livello = liv; S.isoFocus = null; S.isoTipo = 'isolato'; S.lottoAnelli = null; S.isoSet = null; S.isoItems = [];     // gli indici degli edifici cambiano con il livello
     Indirizzi.carica(liv, S.index);                                   // indirizzi per il tooltip: in background, il tooltip li mostra appena pronti
     const a = Float64Array.from(c.items, b => b.area).sort(); S.mediana = a.length ? Math.round(a[a.length >> 1]) : 0;
     ricalcola(); minimappa(); nascondi(); aggiornaUI(); scriviHash();
@@ -68,12 +68,18 @@ function ricalcola() {
     else ord.sort((a, b) => items[b].area - items[a].area);
     return { items, order: ord, group: S.raggruppa ? i => items[i].cls[k] : null, indici: p.indici };
   });
-  S.layout = S.isoFocus !== null ? layoutIsolato(it, k) : Blocchi.disponi(S.citta.zone, perZona, { margine: 4000, cittaH: S.index.h });
+  S.layout = S.isoFocus !== null ? (S.isoTipo === 'lotto' ? layoutDelLotto(it) : layoutIsolato(it, k)) : Blocchi.disponi(S.citta.zone, perZona, { margine: 4000, cittaH: S.index.h });
   S.views.sorted = R.adattaOrdinata(); S.fitOrd = true;
   R.carica();
   nascondiTip(); Pannello.aggiorna(S, azioni); R.disegna();
 }
 
+/* un solo blocco con il lotto e i suoi edifici nelle posizioni reali (non ordinati in righe: si vede il costruito sul lotto) */
+function layoutDelLotto(it) {
+  const r = Lotti.layoutLotto(it, S.isoItems, S.lottoAnelliCitta || []);
+  S.lottoAnelli = r.anelliBlocco;
+  return { pos: r.pos, blocchi: [{ z: 0, x: 0, y: 0, w: r.w, h: r.h, etichette: [] }], w: r.w, h: r.h, sposta: [0, 0] };
+}
 /* un solo blocco con gli edifici dell'isolato in primo piano; stessa forma di Blocchi.disponi (pos per tutti gli edifici del livello) */
 function layoutIsolato(it, k) {
   const ids = S.isoItems, items = ids.map(g => it[g]), ord = items.map((_, i) => i);
@@ -109,7 +115,7 @@ function vaiA(verso) {
   const target = verso === 'sorted' ? 1 : 0;
   if (verso === 'sorted') { S.evid = null; chiudiSchedaLotto(); chiudiScheda(); S.isoHover = -1; }   // evidenziazione e isolati valgono solo in Mappa
   if (S.lin === target) { S.lin = S.t = target; impostaInterazione(); if (target === 0 && S.isoFocus !== null) liberaIsolato(); else R.disegna(); scriviHash(); return; }
-  if (verso === 'map' && S.isoFocus !== null) B.vaiA(Isolati.lista[S.isoFocus].bbox, false, S.inset, 19);   // la mappa atterra sull'isolato
+  if (verso === 'map' && S.isoFocus !== null) B.vaiA(S.isoTipo === 'lotto' ? S.lottoBBox : Isolati.lista[S.isoFocus].bbox, false, S.inset, 19);   // la mappa atterra sull'isolato
   S.anim = true; impostaInterazione(); nascondiTip();
   let prev = performance.now();
   (function passo(now) {
@@ -286,7 +292,7 @@ function leggiHash() {
   const x = (p.get('x') || '').split(',').filter(Boolean).map(Number).filter(n => Number.isInteger(n) && n >= 0 && n < 32);
   const tab = p.get('p');
   return { l: LIVELLI.includes(l) ? l : 'circ', v: v === 'sorted' ? 'sorted' : 'map', z: p.get('z'), c: cam,
-    k: ['uso', 'alt', 'sup'].includes(k) ? k : 'alt', x, g: p.get('g') === '1', s: p.get('s') !== '0', i: p.get('i') === '1', o: p.get('o') === '1', q: p.get('q') === '1', m: ['alt', 'cop', 'den'].includes(p.get('m')) ? p.get('m') : null, a: /^\w{1,30}$/.test(p.get('a') || '') ? p.get('a') : null,
+    k: ['uso', 'alt', 'sup'].includes(k) ? k : 'alt', x, g: p.get('g') === '1', s: p.get('s') !== '0', i: p.get('i') === '1', o: p.get('o') === '1', q: p.get('q') === '1', lot: /^\d{1,7}$/.test(p.get('lot') || '') ? Number(p.get('lot')) : null, m: ['alt', 'cop', 'den'].includes(p.get('m')) ? p.get('m') : null, a: /^\w{1,30}$/.test(p.get('a') || '') ? p.get('a') : null,
     t: p.get('t') === 'light' || p.get('t') === 'dark' ? p.get('t') : null,
     p: tab && document.querySelector(`.tab-hdr[data-tab="${CSS.escape(tab)}"]`) ? tab : 'zone' };
 }
@@ -298,7 +304,7 @@ function costruisciHash() {
   if (S.vista === 'map' && B) { const m = B.map, ce = m.getCenter(); c = `&c=${m.getZoom().toFixed(2)}/${ce.lat.toFixed(4)}/${ce.lng.toFixed(4)}`; }
   const tab = document.querySelector('.tab-hdr.active'), p = tab && tab.dataset.tab !== 'zone' ? `&p=${tab.dataset.tab}` : '';
   const x = S.spente.size ? `&x=${[...S.spente].sort((a, b) => a - b).join(',')}` : '';
-  return `l=${S.livello}&v=${S.vista}${z}${c}&k=${S.colore}${x}${S.raggruppa ? '&g=1' : ''}${S.lato ? '' : '&s=0'}${S.isola ? '&i=1' : ''}${S.isolati ? '&o=1' : ''}${S.lotti ? '&q=1' : ''}${S.moran ? `&m=${S.moran}` : ''}${S.isoFocus !== null ? `&a=${encodeURIComponent(Isolati.lista[S.isoFocus].idag)}` : ''}&t=${S.tema}${p}`;
+  return `l=${S.livello}&v=${S.vista}${z}${c}&k=${S.colore}${x}${S.raggruppa ? '&g=1' : ''}${S.lato ? '' : '&s=0'}${S.isola ? '&i=1' : ''}${S.isolati ? '&o=1' : ''}${S.lotti ? '&q=1' : ''}${S.moran ? `&m=${S.moran}` : ''}${S.isoFocus !== null ? (S.isoTipo === 'lotto' ? `&lot=${S.isoFocus}` : `&a=${encodeURIComponent(Isolati.lista[S.isoFocus].idag)}`) : ''}&t=${S.tema}${p}`;
 }
 function scriviHash() {
   if (!S.citta) return;
@@ -378,10 +384,11 @@ async function apriIsolato(k, subito = false) {
 }
 /* a fine animazione verso la Mappa: tornano tutti gli edifici e si riapre la scheda dell'isolato */
 function liberaIsolato() {
-  const k = S.isoFocus;
-  S.isoFocus = null; S.isoSet = null; S.isoItems = [];
+  const k = S.isoFocus, lotto = S.isoTipo === 'lotto', props = S.lottoProps;
+  S.isoFocus = null; S.isoTipo = 'isolato'; S.lottoAnelli = null; S.lottoAnelliCitta = null; S.lottoProps = null; S.isoSet = null; S.isoItems = [];
   ricalcola(); Cerca.aggiorna(); marcaMini();
-  if (S.isolati && k !== null) apriScheda(k);
+  if (lotto) { if (S.lotti && props && props.k === k) apriSchedaLotto(k, props); else if (S.lotti) LM.seleziona(k); }
+  else if (S.isolati && k !== null) apriScheda(k);
 }
 /* accende o spegne il livello; il file (circa 8 MB) si scarica alla prima accensione */
 async function impostaIsolati(on) {
@@ -414,8 +421,31 @@ function chiudiSchedaLotto() {
   if (S.lottoSel === null && $('scheda-lotto').hidden) return;
   S.lottoSel = null; lottoProps = null; $('scheda-lotto').hidden = true; if (LM) LM.seleziona(null);
 }
-/* doppio clic su un lotto (o «Vedi il lotto»): vista Ordinata del lotto — implementata nel Task 6 */
-async function apriLotto(k, subito = false) { avvisa('La vista del singolo lotto non e\' ancora disponibile.'); }
+/* doppio clic su un lotto (o «Vedi il lotto»): vista Ordinata del solo lotto, con il contorno della particella e i suoi edifici
+   nelle posizioni reali; riusa il meccanismo di «fuoco» degli isolati (S.isoFocus con S.isoTipo === 'lotto') */
+async function apriLotto(k, subito = false) {
+  if (S.anim || S.caricando || !S.citta || k == null) return;
+  try {
+    const props = lottoProps && lottoProps.k === k ? lottoProps : null;
+    const [m, g] = await Promise.all([Lotti.membri(k, S.livello, S.citta.items.length), Lotti.anelli(k)]);
+    if (!m.lista.length || !g) { avvisa('Nessun edificio in questo lotto.'); return; }
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const a of g.anelli) for (let i = 0; i < a.length; i += 2) {
+      const q = Geo.cittaToMerc(S.index, a[i], a[i + 1]);
+      if (q[0] < x0) x0 = q[0]; if (q[0] > x1) x1 = q[0]; if (q[1] < y0) y0 = q[1]; if (q[1] > y1) y1 = q[1];
+    }
+    S.lottoAnelliCitta = g.anelli; S.lottoBBox = { x0, y0, x1, y1 }; S.lottoProps = props;
+    S.isoFocus = k; S.isoTipo = 'lotto'; S.isoSet = m.set; S.isoItems = m.lista;
+    S.isoZona = `Superficie del lotto: ${NUM.format(g.m2)} m²${props ? ` · copertura circa ${props.cop} %` : ''}`;
+    S.isoTitolo = `Particella ${g.foglio}/${g.particella} · ${NUM.format(m.lista.length)} ${m.lista.length === 1 ? 'edificio' : 'edifici'}`;
+    S.sel = null; S.conf = null; S.evid = null; S.spente.clear();
+    chiudiSchedaLotto(); nascondiTip();
+    ricalcola(); Cerca.aggiorna(); marcaMini();
+    if (!mobile()) impostaPannello(true);
+    if (subito) { S.vista = 'sorted'; S.lin = S.t = 1; impostaInterazione(); aggiornaUI(); R.disegna(); scriviHash(); }
+    else vaiA('sorted');
+  } catch (err) { console.error(err); avvisa(`Apertura del lotto non riuscita (${err.message}).`); }
+}
 
 /* ---------- lotti catastali (particelle): livello vettoriale sulla Mappa ---------- */
 async function impostaLotti(on) {
@@ -832,7 +862,10 @@ function ridimensiona() {
     S.vista = h.v; S.lin = S.t = h.v === 'sorted' ? 1 : 0;
     impostaInterazione(); aggiornaUI(); R.disegna(); scriviHash();
     if (h.m) { moranVar = h.m; await impostaMoran(true); if (h.c) applicaCamera(h.c); }
-    else if (h.q) await impostaLotti(true);
+    else if (h.q || h.lot !== null) {
+      await impostaLotti(true);
+      if (h.lot !== null) await apriLotto(h.lot, true);                          // link con un lotto: si riapre direttamente la sua vista Ordinata
+    }
     else if (h.o || h.a) {
       await impostaIsolati(true);
       const k = h.a ? Isolati.trova(h.a) : -1;
