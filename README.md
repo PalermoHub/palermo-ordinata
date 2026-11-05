@@ -97,7 +97,11 @@ scripts/make_gif.sh upl-tribunali-o-kalsa                # img/anim/<id>.mp4 e .
 $PY scripts/test_layout.py js_layout.json                # confronto del packing con quello JS
 ```
 
-Esempio: `img/anim/upl-tribunali-o-kalsa.gif`. Il disegno usa Pillow e lo stesso layout dell'app; servono `ffmpeg` e, per Inter, la variabile `FONT_DIR` (altrimenti DejaVu Sans).
+Esempio: `img/anim/circ-i.gif`.
+
+![Circoscrizione I](img/anim/circ-i.gif)
+
+Il disegno usa Pillow e lo stesso layout dell'app; servono `ffmpeg` e, per Inter, la variabile `FONT_DIR` (altrimenti DejaVu Sans).
 
 ## Da fare
 
