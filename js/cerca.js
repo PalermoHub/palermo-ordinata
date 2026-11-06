@@ -173,12 +173,32 @@
     if (!$('cerca-lista').hidden) apri();
   }
 
+  /* ---------- popup foglio + particella ---------- */
+  function collegaCatasto() {
+    const pop = $('catasto-popup'), esito = $('catasto-esito'), fo = $('catasto-foglio'), pa = $('catasto-part'), vai = $('catasto-vai'), apre = $('cerca-catasto');
+    const msg = t => { esito.textContent = t || ''; esito.hidden = !t; };
+    const chiudiPop = () => { pop.hidden = true; apre.focus(); };
+    apre.addEventListener('click', () => { chiudi(); msg(''); pop.hidden = false; fo.focus(); fo.select(); });
+    $('catasto-chiudi').addEventListener('click', chiudiPop);
+    pop.addEventListener('mousedown', e => { if (e.target === pop) chiudiPop(); });          // clic fuori dalla finestra
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !pop.hidden) { e.preventDefault(); e.stopPropagation(); chiudiPop(); } }, true);   // Esc chiude il popup anche se il fuoco e' sul corpo della pagina
+    $('catasto-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      if (vai.disabled) return;
+      vai.disabled = true; vai.textContent = 'Cerco…'; msg('');
+      const r = await az.vaiAParticella(fo.value.trim(), pa.value.trim());
+      vai.disabled = false; vai.textContent = 'Cerca';
+      if (r === null) pop.hidden = true; else { msg(r); pa.focus(); pa.select(); }
+    });
+  }
+
   /* ---------- eventi ---------- */
   function collega() {
     const inp = $('cerca-zona');
     $('cerca-prec').addEventListener('click', () => passo(-1));
     $('cerca-succ').addEventListener('click', () => passo(1));
     $('cerca-reset').addEventListener('click', () => { inp.value = ''; chiudi(); inp.blur(); az.reset(); });
+    collegaCatasto();
     inp.addEventListener('focus', () => { caricaCivici(); apri(); });
     inp.addEventListener('click', () => { if ($('cerca-lista').hidden) apri(); });
     inp.addEventListener('input', apri);

@@ -161,7 +161,28 @@
         ctx.strokeStyle = '#fff'; ctx.lineWidth = 3.5 / kk; ctx.stroke(P);
       }
       ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1;
+      if (S.lottoSel !== null && S.lotti && e < 0.999) disegnaLottoSel(v, 1 - e);          // bordo della particella scelta, sopra gli edifici
       if (e > 0.6 && S.raggruppa) disegnaEtichetteGruppo(vs, (e - 0.6) / 0.4);
+    }
+
+    /* contorno della particella selezionata sulla Mappa: il layer MapLibre sta sotto il canvas degli edifici, che lo coprirebbe */
+    let selMerc = null;                                                                    // {k, anelli in coordinate Mercator}
+    function disegnaLottoSel(v, alfa) {
+      if (!selMerc || selMerc.k !== S.lottoSel) {
+        const g = root.Lotti.anelliSync(S.lottoSel);
+        selMerc = { k: S.lottoSel, anelli: g ? g.anelli.map(a => { const o = new Float64Array(a.length); for (let i = 0; i < a.length; i += 2) { const q = Geo.cittaToMerc(S.index, a[i], a[i + 1]); o[i] = q[0]; o[i + 1] = q[1]; } return o; }) : [] };
+      }
+      if (!selMerc.anelli.length) return;
+      const dpr = S.dpr, wd = v.world, W = v.W, H = v.H;
+      ctx.save(); ctx.globalAlpha = alfa; ctx.lineJoin = 'round'; ctx.beginPath();
+      for (const a of selMerc.anelli) {
+        for (let i = 0; i < a.length; i += 2) { const X = ((a[i] - v.cx) * wd + W / 2) * dpr, Y = ((a[i + 1] - v.cy) * wd + H / 2) * dpr; i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }
+        ctx.closePath();
+      }
+      ctx.fillStyle = 'rgba(245,166,35,.12)'; ctx.fill('evenodd');
+      ctx.strokeStyle = 'rgba(0,0,0,.75)'; ctx.lineWidth = 6.5 * dpr; ctx.stroke();
+      ctx.strokeStyle = '#f5a623'; ctx.lineWidth = 3.5 * dpr; ctx.stroke();
+      ctx.restore();
     }
 
     /* contorni degli isolati: tutti (tratteggio sottile) solo se abbastanza grandi sullo schermo; sempre quello sotto il cursore e quello scelto */

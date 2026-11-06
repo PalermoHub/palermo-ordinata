@@ -186,6 +186,23 @@
     await Promise.all([...new Set(Object.values(dati.lu))].map(caricaUpl));
   }
 
+  /* ricerca per foglio e particella: l'indice si costruisce dai file per UPL (caricati alla prima ricerca) e resta in memoria */
+  const normRef = s => String(s == null ? '' : s).trim().toUpperCase().replace(/^0+(?=.)/, '');
+  let indiceRef = null;
+  /* ritorna gli identificativi k dei lotti con quel foglio e quella particella (di solito uno; vuoto se non esiste) */
+  async function trova(foglio, particella) {
+    if (!indiceRef) {
+      await caricaGeometrie();
+      const m = new Map();
+      for (const f of perUpl.values()) for (const k in f) {
+        const v = f[k], chiave = normRef(v[0]) + '/' + normRef(v[1]);
+        if (m.has(chiave)) m.get(chiave).push(+k); else m.set(chiave, [+k]);
+      }
+      indiceRef = m;
+    }
+    return indiceRef.get(normRef(foglio) + '/' + normRef(particella)) || [];
+  }
+
   /* lotto principale (k, o -1) di ogni edificio del livello */
   async function lottoDiItems(livello, nItems) {
     if (!dati) await carica();
@@ -223,7 +240,7 @@
     return { pos, w, h, anelliBlocco };
   }
 
-  const Lotti = { CLASSI, CLASSI_EDIFICI, classiItems, propsLotto, gruppi, posiziona, anelliSync, caricaGeometrie, lottoDiItems, nascosto, statFiltrate, applica, classiAccese, classe, scheda, carica, pronto: () => !!dati, membri, selezionaMembri, anelli, layoutLotto };
+  const Lotti = { CLASSI, CLASSI_EDIFICI, classiItems, propsLotto, gruppi, posiziona, anelliSync, caricaGeometrie, trova, lottoDiItems, nascosto, statFiltrate, applica, classiAccese, classe, scheda, carica, pronto: () => !!dati, membri, selezionaMembri, anelli, layoutLotto };
   if (typeof module !== 'undefined' && module.exports) module.exports = Lotti;
   else root.Lotti = Lotti;
 })(typeof window !== 'undefined' ? window : globalThis);

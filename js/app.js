@@ -236,7 +236,7 @@ function apriOrdinata(zi) {
   if (S.vista === 'sorted') { fine(); return; }
   vaiA('sorted'); S.coda.push(fine); svuotaCoda();
 }
-const azioni = { esciIsolato: () => vaiA('map'), evidenzia: i => { S.evid = S.evid === i ? null : i; R.disegna(); }, seleziona: (zi, z) => { if (mobile() && pannelloAperto()) impostaPannello(false); seleziona(zi, z); }, filtra, confronta, solo: soloClasse, azzera: azzeraFiltro, vaiAZona, vaiAEdificio, reset: resetTutto };
+const azioni = { esciIsolato: () => vaiA('map'), evidenzia: i => { S.evid = S.evid === i ? null : i; R.disegna(); }, seleziona: (zi, z) => { if (mobile() && pannelloAperto()) impostaPannello(false); seleziona(zi, z); }, filtra, confronta, solo: soloClasse, azzera: azzeraFiltro, vaiAZona, vaiAEdificio, vaiAParticella, reset: resetTutto };
 
 /* ---------- mini-mappa ---------- */
 function minimappa() {
@@ -419,11 +419,12 @@ function apriSchedaLotto(k, props) {
   for (const a of d.avvisi) { const r = document.createElement('div'); r.className = 'scheda-avviso'; r.textContent = a; ind.append(r); }
   $('scheda-lotto-apri').hidden = !props.n;
   box.hidden = false;
+  if (R && S.citta && S.vista === 'map') R.disegna();                                                      // bordo sul canvas, sopra gli edifici
 }
 function chiudiSchedaLotto() {
   if (S.lottoSel === null && $('scheda-lotto').hidden) return;
   S.lottoSel = null; lottoProps = null; $('scheda-lotto').hidden = true; if (LM) LM.seleziona(null);
-  if (R && S.citta && S.vista === 'sorted' && S.layout && S.layout.lotti) R.disegna();                     // toglie l'evidenziazione dal canvas
+  if (R && S.citta && (S.vista === 'map' || (S.vista === 'sorted' && S.layout && S.layout.lotti))) R.disegna();   // toglie l'evidenziazione dal canvas
 }
 /* scheda di un lotto scelto con un clic nella vista «Ordina per lotti» (stessi dati e stessa scheda della Mappa) */
 function apriSchedaLottoOrd(c) {
@@ -456,6 +457,33 @@ async function apriLotto(k, subito = false) {
     if (subito) { S.vista = 'sorted'; S.lin = S.t = 1; impostaInterazione(); aggiornaUI(); R.disegna(); scriviHash(); }
     else vaiA('sorted');
   } catch (err) { console.error(err); avvisa(`Apertura del lotto non riuscita (${err.message}).`); }
+}
+
+/* ricerca per foglio e particella (popup della barra di ricerca): accende i lotti, inquadra la particella sulla Mappa e apre la scheda.
+   Ritorna null se va a buon fine, altrimenti il messaggio da mostrare nel popup. */
+async function vaiAParticella(foglio, particella) {
+  if (S.anim || S.caricando || !S.citta) return 'Attendi la fine del caricamento o dell\'animazione e riprova.';
+  try {
+    const ks = await Lotti.trova(foglio, particella);
+    if (!ks.length) return `Nessuna particella ${foglio}/${particella} nei dati del catasto (settembre 2026).`;
+    const k = ks[0], g = await Lotti.anelli(k);
+    if (!g || !g.anelli.length) return 'Particella trovata, ma senza contorno disponibile.';
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const a of g.anelli) for (let i = 0; i < a.length; i += 2) {
+      const q = Geo.cittaToMerc(S.index, a[i], a[i + 1]);
+      if (q[0] < x0) x0 = q[0]; if (q[0] > x1) x1 = q[0]; if (q[1] < y0) y0 = q[1]; if (q[1] > y1) y1 = q[1];
+    }
+    if (!S.lotti) await impostaLotti(true);
+    if (!S.lotti) return 'Non sono riuscito ad accendere il livello dei lotti.';
+    const n = (await Lotti.membri(k, S.livello, S.citta.items.length)).lista.length;
+    const r = Math.max((x1 - x0) / 2, (y1 - y0) / 2, 15 / Geo.metriPerUnitaMerc(R.LAT)) * 1.25;   // almeno 30 m di lato
+    const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+    B.vaiA({ x0: cx - r, x1: cx + r, y0: cy - r, y1: cy + r }, false, S.inset, 19);
+    if (S.vista !== 'map') vaiA('map');
+    apriSchedaLotto(k, Lotti.propsLotto(k, g, n));
+    if (ks.length > 1) avvisa(`Trovate ${ks.length} particelle con questo numero: mostrata la prima.`);
+    return null;
+  } catch (err) { console.error(err); return `Ricerca non riuscita (${err.message}).`; }
 }
 
 /* ---------- lotti catastali (particelle): livello vettoriale sulla Mappa ---------- */

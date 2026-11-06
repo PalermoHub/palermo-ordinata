@@ -117,7 +117,22 @@
       <button id="cerca-reset" type="button" title="Azzera filtri e torna alla vista iniziale" aria-label="Azzera tutti i filtri e torna alla vista iniziale"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button>
       <ul id="cerca-lista" role="listbox" aria-label="Zone" hidden></ul>
     </div>
+    <button id="cerca-catasto" type="button" aria-haspopup="dialog" title="Cerca una particella catastale per foglio e numero" aria-label="Cerca per foglio e particella"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M10 18h4"/></svg></button>
   </div>
+</div>
+
+<div id="catasto-popup" role="dialog" aria-modal="true" aria-labelledby="catasto-titolo" hidden>
+  <form id="catasto-form" autocomplete="off">
+    <button id="catasto-chiudi" type="button" aria-label="Chiudi" title="Chiudi (Esc)">×</button>
+    <strong id="catasto-titolo">Cerca per foglio e particella</strong>
+    <p>Catasto, settembre 2026. Mostra la particella sulla Mappa e ne apre la scheda.</p>
+    <div class="catasto-campi">
+      <label>Foglio<input id="catasto-foglio" type="text" inputmode="numeric" required maxlength="8" spellcheck="false" placeholder="es. 138"></label>
+      <label>Particella<input id="catasto-part" type="text" required maxlength="12" spellcheck="false" placeholder="es. 1"></label>
+    </div>
+    <div id="catasto-esito" role="status" aria-live="polite" hidden></div>
+    <button id="catasto-vai" type="submit" title="Cerca la particella e inquadrala sulla Mappa">Cerca</button>
+  </form>
 </div>
 
 <button id="torna-mappa" type="button" title="Chiudi e torna alla mappa (M)" aria-label="Chiudi la vista ordinata e torna alla mappa"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
@@ -420,6 +435,7 @@
       </ul>
       <figure><button type="button" class="gal" data-gal="img/guida/lotto-ordinata.png" data-cap="Doppio clic su un lotto: il contorno della particella con i suoi edifici nelle posizioni reali" title="Ingrandisci: Doppio clic su un lotto: il contorno della particella con i suoi edifici nelle posizioni reali"><img src="img/guida/lotto-ordinata.png" alt="La vista Ordinata del singolo lotto, con il contorno della particella e i suoi edifici" loading="lazy"></button><figcaption>Doppio clic su un lotto: il contorno della particella con i suoi edifici nelle posizioni reali</figcaption></figure>
       <ul class="guida">
+        <li><b>Cerca per foglio e particella</b>: il pulsante accanto alla barra di ricerca apre un popup dove scrivere foglio e numero di particella (es. 138 e 1). L'app accende i Lotti, inquadra la particella sulla Mappa e ne apre la scheda. Al primo uso scarica i contorni dei lotti (circa 9 MB).</li>
         <li><b>Doppio clic su un lotto</b> (o doppio tocco, o «Vedi il lotto con i suoi edifici» nella scheda): apre la vista Ordinata del solo lotto. Qui gli edifici <b>non sono in fila</b>: restano dove sono, dentro il contorno della particella, alla stessa scala.</li>
         <li>Il pannello mostra le statistiche degli edifici del lotto; «<b>Torna alla mappa</b>», la X o il tasto <kbd>M</kbd> riportano sulla Mappa, centrata sul lotto. Il link conserva il lotto aperto (<code>&amp;lot=…</code>).</li>
       </ul>
